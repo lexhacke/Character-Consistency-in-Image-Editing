@@ -8,3 +8,4 @@ matplotlib
 transformers
 torch
 python-dotenv
+triton-windows

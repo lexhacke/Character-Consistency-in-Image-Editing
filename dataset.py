@@ -1,12 +1,14 @@
 import PIL, json, requests, io, asyncio, aiohttp
 
 class PicobananaDataset:
-    def __init__(self, first_n=200):
+    def __init__(self, start_index=0, n=200, return_img=True):
         # Just fetch the JSON structure first (fast)
         print("Fetching JSONL index...")
-        self.first_n = first_n
+        self.n = n
+        self.return_img = return_img
+        self.start_index = start_index
         r = requests.get('https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/jsonl/sft.jsonl')
-        self.raw_data = [json.loads(line) for line in r.text.splitlines() if line.strip()][:first_n]
+        self.raw_data = [json.loads(line) for line in r.text.splitlines() if line.strip()][self.start_index:self.start_index + self.n]
         self.edit_types = set()
         self.data = []
         self.fails = 0
@@ -14,7 +16,7 @@ class PicobananaDataset:
     async def prepare_data(self):
         print(f"Validating {len(self.raw_data)} items asynchronously...")
         # Await the filter directly - no asyncio.run() needed
-        self.data = await self.filter_valid_urls(self.raw_data[:self.first_n])
+        self.data = await self.filter_valid_urls(self.raw_data[self.start_index:self.start_index+self.n])
         print(f"Finished. Retained {len(self.data)} valid items, {self.fails} fails")
 
     # (Keep your existing filter_valid_urls and check_item methods the same)
@@ -53,7 +55,10 @@ class PicobananaDataset:
         prompt, edit_type, summarized_text = self.data[index]['text'], self.data[index]['edit_type'], self.data[index]['summarized_text']
         original_image = PIL.Image.open(io.BytesIO(requests.get(self.data[index]['open_image_input_url']).content))
         edited_image = PIL.Image.open(io.BytesIO(requests.get("https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image']).content))
-        return {'prompt':prompt, 'original':original_image, 'edited':edited_image, 'edit_type':edit_type}
+        return {'prompt':prompt,
+                'original':original_image if self.return_img else self.data[index]['open_image_input_url'],
+                'edited':edited_image if self.return_img else "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image'],
+                'edit_type':edit_type}
 
     def __len__(self):
         return len(self.data)
@@ -63,3 +68,4 @@ if __name__ == "__main__":
     dataset = PicobananaDataset()
     asyncio.run(dataset.prepare_data())
     plt.imshow(dataset[10]['edited'])
+    plt.show()

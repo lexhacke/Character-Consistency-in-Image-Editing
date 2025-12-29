@@ -1,0 +1,34 @@
+import os
+import json
+import numpy as np
+import PIL
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+
+folder = "data_sample/success/"
+
+for file in os.listdir('/content/'+folder):
+    try:
+        plt.figure(figsize=(10, 6))
+        base = np.array(PIL.Image.open('/content/'+folder+file+'/base.jpeg'))
+        comp = np.array(PIL.Image.open('/content/'+folder+file+'/composite.jpeg'))
+        other = np.array(PIL.Image.open('/content/'+folder+file+'/other.jpeg'))
+        meta = json.load(open('/content/'+folder+file+'/meta.json'))
+        stitch = np.concat([base, other, comp], axis=1)
+        plt.imshow(stitch)
+        plt.show()
+        print("Prompt:", meta['prompt'])
+        print("Base:", meta['base'])
+        print("Similarity Score:", meta['similarity_score'])
+        if len(meta['union']['success']) > 0:
+            print(f"Stitched {', '.join(meta['union']['success'])} from other")
+        if len(meta['union']['failed']) > 0:
+            print(f"Failed to find {', '.join(meta['union']['failed'])} in other")
+        if len(meta['subtraction']['success']) > 0:
+            print(f"Cut {', '.join(meta['subtraction']['success'])} from {meta['base']}")
+        if len(meta['subtraction']['failed']) > 0:
+            print(f"Failed to cut {', '.join(meta['subtraction']['failed'])} from {meta['base']}")
+    except Exception as e:
+        print(e)
+        continue
