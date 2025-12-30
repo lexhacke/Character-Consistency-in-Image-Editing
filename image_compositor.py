@@ -249,6 +249,7 @@ async def main():
             item['prompt']
         )
     print("Composite JSON:", composite_json)
+    item['edited'] = item['edited'].resize(item['original'].size, PIL.Image.BILINEAR)
     segmaps = compositor.get_segmaps(item['edited'], item['original'], composite_json)
 
     other = item['original'] if composite_json['base'] == 'edited' else item['edited']
@@ -274,7 +275,8 @@ async def main():
     underlay = subtraction_union * other
     composite = overlay + base + underlay
     plt.imshow(composite)
-
+    plt.show()
+    
 if __name__ == "__main__":
     from dataset import PicobananaDataset
     import numpy as np
