@@ -276,10 +276,10 @@ async def main():
     composite = overlay + base + underlay
     plt.imshow(composite)
     plt.show()
-    
+
 if __name__ == "__main__":
     from dataset import PicobananaDataset
     import numpy as np
     import matplotlib.pyplot as plt
-    import asyncio
+    import asyncio, PIL
     asyncio.run(main())
