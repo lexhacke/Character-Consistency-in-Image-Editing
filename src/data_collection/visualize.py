@@ -1,20 +1,22 @@
-import os
+import os, dotenv
 import json
 import numpy as np
 import PIL
 import matplotlib.pyplot as plt
 
+dotenv.load_dotenv()
+
 plt.figure(figsize=(10, 6))
 
 folder = "data_sample/success/"
 
-for file in os.listdir('/content/'+folder):
+for file in os.listdir(os.environ['SAVE_PATH']+folder):
     try:
         plt.figure(figsize=(10, 6))
-        base = np.array(PIL.Image.open('/content/'+folder+file+'/base.jpeg'))
-        comp = np.array(PIL.Image.open('/content/'+folder+file+'/composite.jpeg'))
-        other = np.array(PIL.Image.open('/content/'+folder+file+'/other.jpeg'))
-        meta = json.load(open('/content/'+folder+file+'/meta.json'))
+        base = np.array(PIL.Image.open(os.environ['SAVE_PATH']+folder+file+'/base.jpeg'))
+        comp = np.array(PIL.Image.open(os.environ['SAVE_PATH']+folder+file+'/composite.jpeg'))
+        other = np.array(PIL.Image.open(os.environ['SAVE_PATH']+folder+file+'/other.jpeg'))
+        meta = json.load(open(os.environ['SAVE_PATH']+folder+file+'/meta.json'))
         stitch = np.concat([base, other, comp], axis=1)
         plt.imshow(stitch)
         plt.show()
