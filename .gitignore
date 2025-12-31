@@ -1,3 +1,4 @@
-.env
-data_collection/__pycache__
-models/__pycache__
+src/data_collection/__pycache__
+src/models/__pycache__
+src/models/data_sample
+src/.env

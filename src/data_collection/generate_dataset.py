@@ -9,19 +9,6 @@ load_dotenv()
 assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file"
 
 def save_to(dataset, path, frequency_table):
-    """
-    Schema:
-    data_sample.zip
-    L Image1
-    L meta.json
-    L base.jpeg
-    L other.jpeg
-    L composite.jpeg
-    L [segmentation prompt 1].jpeg
-    L [segmentation prompt 2].jpeg
-    L ...
-    """
-
     compositor = ImageCompositor()
     for i,item in enumerate(dataset):
         """
@@ -74,41 +61,34 @@ def save_to(dataset, path, frequency_table):
         }
 
         # Since SAM3 will output many segmentation maps for one image, we will just take the logical_or of all of them.
-        subtraction_union = np.zeros_like(original)
+        sub_mask = np.zeros_like(original)
         for segmap, obj in segmaps['segmaps']['subtraction']:
             segmap = segmap.unsqueeze(-1)[0]
             segmap = segmap.cpu().numpy()
+            sub_mask = np.logical_or(segmap, sub_mask)
 
-            subtraction_union = np.logical_or(segmap, subtraction_union)
-            segmented_img = 0.8 * segmap * base + 0.2 * base
-            # Save
-            segmented_img = segmented_img * 255
-            save_image = PIL.Image.fromarray(segmented_img.astype(np.uint8))
-            save_image.save(path+f"/data_sample/"+bucket+f"{i}/{obj}.jpeg")
-
-        union_union = np.zeros_like(original)
+        union_mask = np.zeros_like(original)
         for segmap, obj in segmaps['segmaps']['union']:
             segmap = segmap.unsqueeze(-1)[0]
             segmap = segmap.cpu().numpy()
+            union_mask = np.logical_or(segmap, union_mask)
+        
+        PIL.Image.fromarray((sub_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/subtraction_mask.png")
+        PIL.Image.fromarray((union_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/union_mask.png")
 
-            union_union = np.logical_or(segmap, union_union)
-            segmented_img = 0.8 * segmap * other + 0.2 * other
-            # Save
-            segmented_img = segmented_img * 255
-            save_image = PIL.Image.fromarray(segmented_img.astype(np.uint8))
-            save_image.save(path+f"/data_sample/"+bucket+f"{i}/{obj}.jpeg")
+        mask = np.logical_or(union_mask, sub_mask)
 
         # Strange shape broadcast error happens when I don't have this. Need the singleton dim to broadcast over color channels
-        if len(union_union.shape) == 2:
-            union_union = union_union[:, :, np.newaxis]
-        if len(subtraction_union.shape) == 2:
-            subtraction_union = subtraction_union[:, :, np.newaxis]
+        if len(mask.shape) == 2:
+            mask = mask[:, :, np.newaxis]
+
+        inv_mask = np.logical_not(mask) # What keep from base
 
         # Now we need to overlay union_union * other over 1 - subtraction_union * base
-        overlay = union_union * other
-        base = (1 - subtraction_union) * (1 - union_union) * base
-        underlay = subtraction_union * other
-        composite = overlay + base + underlay
+        overlay = mask * other
+        underlay = inv_mask * base
+        composite = overlay + underlay
+        PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/mask.png")
         PIL.Image.fromarray((composite * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/composite.jpeg")
 
         v = compositor.dino_forward(PIL.Image.fromarray((composite * 255).astype(np.uint8)))
@@ -119,7 +99,7 @@ def save_to(dataset, path, frequency_table):
         meta['similarity_score'] = float(sim_score)
         with open(path+f"/data_sample/"+bucket+f"{i}/meta.json", 'w') as f:
             json.dump(meta, f, indent=4)
-
+            
 if __name__ == "__main__":
     dataset = PicobananaDataset(n = 50)
     freq =  {edittype:2 for edittype in dataset.edit_types}
