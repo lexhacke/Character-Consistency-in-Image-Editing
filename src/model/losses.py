@@ -34,3 +34,14 @@ class DiceLossFromLogits(nn.Module):
         y, P = y.sum(dim=(1,2,3)), P.sum(dim=(1,2,3))
         loss = 1 - (2 * yP + self.smooth) / (y + P + self.smooth)
         return loss.mean()
+
+if __name__ == "__main__":
+    B, C, H, W = 4, 1, 64, 64
+
+    y = torch.zeros(B, C, H, W)
+    num_ones = int(0.1 * B * C * H * W)
+    indices = torch.randperm(B * C * H * W)[:num_ones]
+    y.view(-1)[indices] = 1
+    yhat = torch.randn(B, C, H, W)
+    loss = FocalLossFromLogits(gamma=2)(y, yhat) + DiceLossFromLogits()(y, yhat)
+    print(f"\nCalculated Loss: {loss.item()}")
