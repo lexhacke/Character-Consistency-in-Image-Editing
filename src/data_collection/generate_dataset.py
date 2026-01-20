@@ -3,6 +3,7 @@ from dataset import PicobananaDataset
 import asyncio, os, PIL, torch, json, shutil
 import numpy as np
 from dotenv import load_dotenv
+from blending import expand_mask, blend
 
 load_dotenv()
 
@@ -10,10 +11,10 @@ assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the
 
 def save_to(dataset, path, frequency_table):
     compositor = ImageCompositor()
-    for i,item in enumerate(dataset):
-        """
-        Only collect number of samples as specified in the frequency table
-        """
+    for i, item in enumerate(dataset):
+        if item == -1: # Failed dataset get request
+            continue
+
         if item['edit_type'] in frequency_table:
             frequency_table[item['edit_type']] -= 1
             if frequency_table[item['edit_type']] == 0:
@@ -72,22 +73,23 @@ def save_to(dataset, path, frequency_table):
             segmap = segmap.unsqueeze(-1)[0]
             segmap = segmap.cpu().numpy()
             union_mask = np.logical_or(segmap, union_mask)
-        
+
         PIL.Image.fromarray((sub_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/subtraction_mask.png")
         PIL.Image.fromarray((union_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/union_mask.png")
 
         mask = np.logical_or(union_mask, sub_mask)
 
-        # Strange shape broadcast error happens when I don't have this. Need the singleton dim to broadcast over color channels
+        # Ensure broadcastability between H W C images
+        if len(base.shape) == 2:
+            base = base[:, :, np.newaxis]
+        if len(other.shape) == 2:
+            other = other[:, :, np.newaxis]
         if len(mask.shape) == 2:
             mask = mask[:, :, np.newaxis]
 
-        inv_mask = np.logical_not(mask) # What keep from base
+        mask = expand_mask(mask)
+        composite = blend(mask, base, other, mode="laplacian")
 
-        # Now we need to overlay union_union * other over 1 - subtraction_union * base
-        overlay = mask * other
-        underlay = inv_mask * base
-        composite = overlay + underlay
         PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/mask.png")
         PIL.Image.fromarray((composite * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/composite.jpeg")
 
@@ -99,7 +101,7 @@ def save_to(dataset, path, frequency_table):
         meta['similarity_score'] = float(sim_score)
         with open(path+f"/data_sample/"+bucket+f"{i}/meta.json", 'w') as f:
             json.dump(meta, f, indent=4)
-            
+
 if __name__ == "__main__":
     dataset = PicobananaDataset(n = 50)
     freq =  {edittype:2 for edittype in dataset.edit_types}

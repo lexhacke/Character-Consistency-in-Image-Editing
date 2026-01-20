@@ -1,4 +1,4 @@
-import os, dotenv, json, PIL.Image
+import os, dotenv, json, PIL.Image, torch
 import numpy as np
 from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
@@ -38,7 +38,7 @@ class UNetDataset(Dataset):
         """
         W, H = img.size
         ratio = self.hw / max(H, W)
-        img = img.resize((int(H*ratio), int(W*ratio)), resample=PIL.Image.NEAREST if is_mask else PIL.Image.BILINEAR)
+        img = img.resize((int(H*ratio+0.5), int(W*ratio+0.5)), resample=PIL.Image.NEAREST if is_mask else PIL.Image.BILINEAR)
         img = np.array(img, dtype=np.float32)
         img = rearrange(img, 'H W C -> C H W')
         C, H, W = img.shape
@@ -60,6 +60,7 @@ class UNetDataset(Dataset):
         for key in {'original', 'edited', 'mask', 'sub_mask', 'union_mask'}:
             datapoint[key] = PIL.Image.open(paths[key])
             datapoint[key] = self.preprocess_img(datapoint[key], key in {'mask', 'sub_mask', 'union_mask'})
+            datapoint[key] = torch.from_numpy(datapoint[key]).float()
         return datapoint
 
 if __name__ == "__main__":
