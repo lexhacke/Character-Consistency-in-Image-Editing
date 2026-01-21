@@ -15,7 +15,7 @@ class FocalLossFromLogits(nn.Module):
         """
         B, _, H, W = y.shape
         P = F.sigmoid(yhat)
-        focal_weight = y * (1 - self.alpha) * (1 - P)**self.gamma + (1 - y) * self.alpha * P**self.gamma
+        focal_weight = y * self.alpha * (1 - P)**self.gamma + (1 - y) * (1 - self.alpha) * P**self.gamma
         bce = F.binary_cross_entropy_with_logits(yhat, y, reduction='none')
         return (bce * focal_weight).mean()
 

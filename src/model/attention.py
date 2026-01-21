@@ -1,7 +1,27 @@
+from transformers import AutoModel, AutoImageProcessor
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 from einops import rearrange
+
+class DinoMap(nn.Module):
+    def __init__(self, device):
+        super().__init__()
+        self.processor = AutoImageProcessor.from_pretrained("facebook/dinov3-vits16-pretrain-lvd1689m")
+        self.vit = AutoModel.from_pretrained("facebook/dinov3-vits16-pretrain-lvd1689m").to(device)
+        self.device = device
+
+    def forward(self, x1, x2):
+        with torch.no_grad():
+            W, H = x1.size
+            x1, x2 = self.processor(images=x1, return_tensors="pt", device=self.device), self.processor(images=x2, return_tensors="pt", device=self.device)
+            x1, x2 = self.vit(**x1)['last_hidden_state'][0][5:], self.vit(**x2)['last_hidden_state'][0][5:]
+            N, _ = x1.shape
+            x1, x2 = x1 / x1.norm(dim=-1).unsqueeze(-1), x2 / x2.norm(dim=-1).unsqueeze(-1)
+            mask = 1 - (x1 * x2).sum(dim=-1)
+            mask = rearrange(mask, "(H W)-> H W", H=int(N**0.5), W=int(N**0.5)).unsqueeze(0).unsqueeze(0)
+            mask = nn.functional.interpolate(mask, size=(H, W), mode='bilinear', align_corners=False)[0][0]
+        return mask
 
 class SpatialAttention(nn.Module):
     """

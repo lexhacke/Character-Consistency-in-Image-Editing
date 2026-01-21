@@ -52,13 +52,32 @@ class PicobananaDataset:
                 return None
 
     def __getitem__(self, index):
+        """
+        Returns a dictionary with the following keys:
+        prompt, original, edited, edit_type
+        original and edited return either the url or the PIL image depending on self.return_img
+        should self.return_img be True, this function will return -1 on a failed get request
+        """
         prompt, edit_type, summarized_text = self.data[index]['text'], self.data[index]['edit_type'], self.data[index]['summarized_text']
-        original_image = PIL.Image.open(io.BytesIO(requests.get(self.data[index]['open_image_input_url']).content))
-        edited_image = PIL.Image.open(io.BytesIO(requests.get("https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image']).content))
-        return {'prompt':prompt,
-                'original':original_image if self.return_img else self.data[index]['open_image_input_url'],
-                'edited':edited_image if self.return_img else "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image'],
-                'edit_type':edit_type}
+        og_url = self.data[index]['open_image_input_url']
+        edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image']
+        if self.return_img:
+            resp = requests.get(og_url)
+            if resp.status_code != 200:
+                return -1
+            og_img = PIL.Image.open(io.BytesIO(resp.content))
+
+            resp = requests.get(edit_url)
+            if resp.status_code != 200:
+                return -1
+            edit_img = PIL.Image.open(io.BytesIO(resp.content))
+
+        return {
+            'prompt':prompt,
+            'original':og_img if self.return_img else og_url,
+            'edited':edit_img if self.return_img else edit_url,
+            'edit_type':edit_type
+        }
 
     def __len__(self):
         return len(self.data)

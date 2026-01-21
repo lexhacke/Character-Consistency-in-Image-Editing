@@ -1,18 +1,71 @@
-import os, dotenv, json, PIL.Image, torch
+import os, dotenv, json, torch
 import numpy as np
+import PIL.Image
+from torch import nn
 from einops import rearrange
 from torch.utils.data import DataLoader, Dataset
+from attention import DinoMap
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file"
 
+class unet_processor:
+    def __init__(self, hw, device):
+        self.hw = hw
+        self.device = device
+        self.dino_map = DinoMap(device)
+
+    def dino_delta(self, original, edited):
+        """
+        Expects 2 PIL.Image
+        """
+        return self.preprocess_img(self.dino_map(original, edited).unsqueeze(0), False)
+
+    def preprocess_img(self, img, is_mask):
+        """
+        Expects img of PIL.Image, reshape via padding with zeros on the minor axis and normalises to [-1,1]
+        """
+        device = self.device
+        if isinstance(img, PIL.Image.Image):
+            device = 'cpu'
+            img = np.array(img, dtype=np.float32)
+            img = torch.from_numpy(img)
+            img = rearrange(img, 'H W C -> C H W')
+
+        C, H, W = img.shape
+        ratio = self.hw / max(H, W)
+        img = nn.functional.interpolate(img.unsqueeze(0), size=(int(H*ratio+0.5), int(W*ratio+0.5)), mode='bilinear', align_corners=False)[0]
+
+        C, H, W = img.shape
+        if H < self.hw:
+            img = torch.cat([img, torch.zeros((C, self.hw-H, W), device=device)], axis=1)
+        else:
+            img = torch.cat([img, torch.zeros((C, H, self.hw-W), device=device)], axis=2)
+        if is_mask:
+            return img[:1] / 255
+        else:
+            return img / 127.5 - 1
+
 class UNetDataset(Dataset):
-    def __init__(self, hw=512, path="/content/"):
+    def __init__(self, hw=512, path="/content/", mode="dino", n=None):
+        if mode == 'L1':
+            self.delta_mode = mode
+        elif mode == 'dino':
+            self.delta_mode = mode
+        else:
+            raise NotImplementedError
+        self.processor = unet_processor(hw, 'cuda')
         self.hw = hw
         folder = "data_sample/success/"
         self.data = []
+        scans = 0
+        fails = 0
         for file in os.listdir(path+folder):
+            scans += 1
+            if n is not None:
+                if n == (scans - fails):
+                    break
             try:
                 meta = json.load(open(path+folder+file+'/meta.json'))
                 if meta['similarity_score'] < 0.94:
@@ -27,46 +80,31 @@ class UNetDataset(Dataset):
 
             except Exception as e:
               print(e)
+              fails += 1
               continue
+        print(f"Tried {scans}, Failed {fails}")
 
     def __len__(self):
         return len(self.data)
-    
-    def preprocess_img(self, img, is_mask):
-        """
-        Expects img of PIL.Image, reshape via padding with zeros on the minor axis
-        """
-        W, H = img.size
-        ratio = self.hw / max(H, W)
-        img = img.resize((int(H*ratio+0.5), int(W*ratio+0.5)), resample=PIL.Image.NEAREST if is_mask else PIL.Image.BILINEAR)
-        img = np.array(img, dtype=np.float32)
-        img = rearrange(img, 'H W C -> C H W')
-        C, H, W = img.shape
-        if H < 512:
-            img = np.concatenate([img, np.zeros((C, 512-H, W))], axis=1)
-        else:
-            img = np.concatenate([img, np.zeros((C, H, 512-W))], axis=2)
-        if is_mask:
-            return img[0] / 255
-        else:
-            return img / 127.5 - 1
 
     def __getitem__(self, idx):
         """
         Does not handle reshape but permutes dims from H W C to C H W and normalises to [-1, 1]
         """
         paths = self.data[idx]
-        datapoint = {}
-        for key in {'original', 'edited', 'mask', 'sub_mask', 'union_mask'}:
-            datapoint[key] = PIL.Image.open(paths[key])
-            datapoint[key] = self.preprocess_img(datapoint[key], key in {'mask', 'sub_mask', 'union_mask'})
-            datapoint[key] = torch.from_numpy(datapoint[key]).float()
+        datapoint = {key: PIL.Image.open(paths[key]) for key in {'original', 'edited', 'mask', 'sub_mask', 'union_mask'}}
+        if self.delta_mode == "dino":
+            datapoint['delta'] = self.processor.dino_delta(datapoint['edited'], datapoint['original'])
+        datapoint = {key: self.processor.preprocess_img(datapoint[key], key == 'mask') for key in datapoint}
+        if self.delta_mode == 'L1':
+            datapoint['delta'] = torch.abs(datapoint['original'] - datapoint['edited'])
+
         return datapoint
 
 if __name__ == "__main__":
     import shutil
-    shutil.unpack_archive('C:\\Users\\lex\\Downloads\\data.zip', os.environ['SAVE_PATH']+"\\data_sample")
-    dataset = UNetDataset(hw=512, path=os.environ['SAVE_PATH'])
+    shutil.unpack_archive(r'C:\Users\lex\Downloads\data.zip', os.environ['SAVE_PATH']+"/data_sample")
+    dataset = UNetDataset(hw=512, path=os.environ['SAVE_PATH']+"/")
     print(f"Dataset size: {len(dataset)}")
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
     for batch in dataloader:
@@ -74,4 +112,4 @@ if __name__ == "__main__":
         print(batch['edited'].shape)
         print(batch['mask'].shape)
         break
-    shutil.rmtree(os.environ['SAVE_PATH']+"\\data_sample")
+    shutil.rmtree(os.environ['SAVE_PATH']+"/data_sample")

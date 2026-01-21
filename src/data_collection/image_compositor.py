@@ -68,6 +68,11 @@ Return a JSON object with this schema:
    - **Standard Edits:** Base = "original". Union = [New object].
    - **Removals:** Base = "original". Subtract = [Object to remove].
    - **Background Changes:** Base = "edited". Union = [Subject from original to preserve].
+3. **Spatial Transformations (Move/Rotate/Resize):** - If an object has moved, rotated, or changed size, you MUST perform a "Cut and Paste" logic.
+   - Base: "original"
+   - Subtract: [The object in its OLD position]
+   - Union: [The object in its NEW position]
+   - This prevents "ghosting" where the object appears in two places at once.
 
 ### Examples:
 
@@ -171,7 +176,7 @@ Output: {{}}
 
     def get_composite_json(self, edited_img, original_img, prompt):
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.5-flash-lite',
+            model='gemini-2.5-flash',
             contents=[
                 'Original image:',
                 types.Part.from_bytes(data=original_img, mime_type='image/jpeg'),
