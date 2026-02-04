@@ -1,30 +1,37 @@
-import PIL, json, requests, io, asyncio, aiohttp
+import PIL.Image, json, requests, io
+import matplotlib.pyplot as plt
+import asyncio
+import aiohttp
+from pathlib import Path
 
 class PicobananaDataset:
-    def __init__(self, start_index=0, n=200, return_img=True):
-        # Just fetch the JSON structure first (fast)
+    def __init__(self, start_index=0, n=200, return_img=True, local_dir="openimage_source_images"):
         print("Fetching JSONL index...")
         self.n = n
         self.return_img = return_img
         self.start_index = start_index
+        self.local_dir = Path(local_dir)
+        
+        # Load JSONL
         r = requests.get('https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/jsonl/sft.jsonl')
-        self.raw_data = [json.loads(line) for line in r.text.splitlines() if line.strip()][self.start_index:self.start_index + self.n]
+        all_lines = [json.loads(line) for line in r.text.splitlines() if line.strip()]
+        self.raw_data = all_lines[self.start_index : self.start_index + self.n]
+        
         self.edit_types = set()
         self.data = []
         self.fails = 0
 
     async def prepare_data(self):
-        print(f"Validating {len(self.raw_data)} items asynchronously...")
-        # Await the filter directly - no asyncio.run() needed
-        self.data = await self.filter_valid_urls(self.raw_data[self.start_index:self.start_index+self.n])
+        print(f"Checking {len(self.raw_data)} items...")
+        # We don't need to check URLs for local files, so we validate Apple's CDN status
+        self.data = await self.filter_valid_items(self.raw_data)
         print(f"Finished. Retained {len(self.data)} valid items, {self.fails} fails")
 
-    # (Keep your existing filter_valid_urls and check_item methods the same)
-    async def filter_valid_urls(self, raw_data):
+    async def filter_valid_items(self, raw_data):
         valid_items = []
-        sem = asyncio.Semaphore(50)
+        sem = asyncio.Semaphore(20) # Conservative to avoid CDN bans
         async with aiohttp.ClientSession() as session:
-            tasks = [self.check_item(sem, session, item, i) for i, item in enumerate(raw_data)]
+            tasks = [self.check_item(sem, session, item) for item in raw_data]
             from tqdm.asyncio import tqdm
             for result in tqdm(asyncio.as_completed(tasks), total=len(tasks)):
                 item = await result
@@ -32,59 +39,83 @@ class PicobananaDataset:
                     valid_items.append(item)
         return valid_items
 
-    async def check_item(self, sem, session, item, index):
+    async def check_item(self, sem, session, item):
         async with sem:
             try:
-                url_orig = item['open_image_input_url']
-                url_edit = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/" + item['output_image']
-                async with session.get(url_orig, timeout=10) as resp_orig:
-                    if resp_orig.status != 200:
+                # 1. Check Local vs URL for Original
+                img_id = item['open_image_input_url'].split('/')[-1]
+                local_path = self.local_dir / img_id
+                
+                # If not local, check if URL is still alive
+                if not local_path.exists():
+                    async with session.head(item['open_image_input_url'], timeout=5) as resp:
+                        if resp.status != 200:
+                            self.fails += 1
+                            return None
+
+                # 2. Check Apple's Edited Image URL
+                edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/" + item['output_image']
+                async with session.head(edit_url, timeout=5) as resp:
+                    if resp.status != 200:
                         self.fails += 1
                         return None
-                async with session.get(url_edit, timeout=10) as resp_edit:
-                    if resp_edit.status != 200:
-                        self.fails += 1
-                        return None
+
                 self.edit_types.add(item['edit_type'])
                 return item
-
-            except Exception as e:
+            except:
+                self.fails += 1
                 return None
 
     def __getitem__(self, index):
-        """
-        Returns a dictionary with the following keys:
-        prompt, original, edited, edit_type
-        original and edited return either the url or the PIL image depending on self.return_img
-        should self.return_img be True, this function will return -1 on a failed get request
-        """
-        prompt, edit_type, summarized_text = self.data[index]['text'], self.data[index]['edit_type'], self.data[index]['summarized_text']
-        og_url = self.data[index]['open_image_input_url']
-        edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/"+self.data[index]['output_image']
+        item = self.data[index]
+        prompt = item['text']
+        edit_type = item['edit_type']
+        
+        # Determine source of Original Image
+        img_id = item['open_image_input_url'].split('/')[-1]
+        local_path = self.local_dir / img_id
+        edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/" + item['output_image']
+
         if self.return_img:
-            resp = requests.get(og_url)
-            if resp.status_code != 200:
+            try:
+                # Load Original
+                if local_path.exists():
+                    og_img = PIL.Image.open(local_path).convert("RGB")
+                else:
+                    resp = requests.get(item['open_image_input_url'], timeout=10)
+                    og_img = PIL.Image.open(io.BytesIO(resp.content)).convert("RGB")
+                
+                # Load Edited (Always from Web in this setup)
+                resp_edit = requests.get(edit_url, timeout=10)
+                edit_img = PIL.Image.open(io.BytesIO(resp_edit.content)).convert("RGB")
+                
+                return {
+                    'prompt': prompt,
+                    'original': og_img,
+                    'edited': edit_img,
+                    'edit_type': edit_type
+                }
+            except:
                 return -1
-            og_img = PIL.Image.open(io.BytesIO(resp.content))
-
-            resp = requests.get(edit_url)
-            if resp.status_code != 200:
-                return -1
-            edit_img = PIL.Image.open(io.BytesIO(resp.content))
-
+        
         return {
-            'prompt':prompt,
-            'original':og_img if self.return_img else og_url,
-            'edited':edit_img if self.return_img else edit_url,
-            'edit_type':edit_type
+            'prompt': prompt,
+            'original_path_or_url': str(local_path) if local_path.exists() else item['open_image_input_url'],
+            'edited_url': edit_url,
+            'edit_type': edit_type
         }
 
     def __len__(self):
         return len(self.data)
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    dataset = PicobananaDataset()
+    import asyncio
+    dataset = PicobananaDataset(n=500) # Bumped n since local checking is fast
     asyncio.run(dataset.prepare_data())
-    plt.imshow(dataset[10]['edited'])
+    import requests
+    import matplotlib.pyplot as plt
+
+    datum = dataset[0]
+    print(datum['prompt'])
+    plt.imshow(datum['original'])
     plt.show()

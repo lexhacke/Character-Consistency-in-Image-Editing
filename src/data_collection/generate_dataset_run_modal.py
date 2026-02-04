@@ -52,22 +52,7 @@ def download_models():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
-    .pip_install(
-        "sam3",
-        "google-genai",
-        "pillow",
-        "requests",
-        "aiohttp",
-        "tqdm",
-        "matplotlib",
-        "transformers",
-        "torch",
-        "python-dotenv",
-        "opencv-python-headless",
-        "einops",
-        "numpy",
-        "psutil",
-    )
+    .pip_install_from_requirements('requirementx.txt')
     .run_function(download_models, gpu="any", secrets=[api_secret])
 )
 
@@ -93,7 +78,7 @@ image = (
     volumes={VOLUME_MOUNT_PATH: output_volume},
     timeout=86400,
 )
-def generate_dataset(n: int = 100_000, start_index: int = 0):
+def generate_dataset(n: int = 200_000, start_index: int = 0):
     import sys
     sys.path.insert(0, "/root/src")
 
@@ -133,7 +118,7 @@ def generate_dataset(n: int = 100_000, start_index: int = 0):
 # CLI entrypoint: modal run generate_dataset_run_modal.py [--n 1000] [--start-index 0]
 # ---------------------------------------------------------------------------
 @app.local_entrypoint()
-def main(n: int = 100_000, start_index: int = 0):
+def main(n: int = 200_000, start_index: int = 0):
     print(f"Launching on Modal (n={n}, start_index={start_index})...")
     generate_dataset.remote(n=n, start_index=start_index)
     print("Done. Data saved to Modal Volume 'picobanana-dataset'.")

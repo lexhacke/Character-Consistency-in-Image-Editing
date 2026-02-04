@@ -1,0 +1,9 @@
+torch
+lightning
+wandb
+transformers
+pillow
+numpy
+einops
+python-dotenv
+opencv-python-headless

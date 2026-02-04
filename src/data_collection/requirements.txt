@@ -1,0 +1,14 @@
+sam3
+google-genai
+pillow
+requests
+aiohttp
+tqdm
+matplotlib
+transformers
+torch
+python-dotenv
+opencv-python-headless
+einops
+numpy
+psutil

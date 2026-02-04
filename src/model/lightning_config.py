@@ -1,9 +1,9 @@
 import os, shutil
+import numpy as np
 import torch
 import torch.nn.functional as F
 from transformers import AutoModel
 from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from unet import UNet
@@ -73,39 +73,45 @@ class UNetLightning(LightningModule):
             y_hat = torch.sigmoid(self(original, edited, delta))
         self.unet.train()
 
-        self.logger.experiment.add_image('orig', original[0]*0.5 + 0.5, self.current_epoch)
-        self.logger.experiment.add_image('mask_gt', mask[0], self.current_epoch)
-        self.logger.experiment.add_image('mask_pred', y_hat[0], self.current_epoch)
+        import wandb
+        def _to_wandb_img(t):
+            img = t.detach().cpu().clamp(0, 1)
+            if img.shape[0] == 1:
+                img = img.repeat(3, 1, 1)
+            return wandb.Image((img.permute(1, 2, 0).numpy() * 255).astype(np.uint8))
+        self.logger.experiment.log({
+            "orig": _to_wandb_img(original[0] * 0.5 + 0.5),
+            "mask_gt": _to_wandb_img(mask[0]),
+            "mask_pred": _to_wandb_img(y_hat[0]),
+        })
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
 if __name__ == "__main__":
-    import subprocess
-    import time
     import dotenv
+    import wandb
+    from lightning.pytorch.loggers import WandbLogger
 
     dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
-    logger = TensorBoardLogger("unet_logs", name="unet_segmenter")
-    tb_process = subprocess.Popen(['tensorboard', '--logdir', 'unet_logs', '--port', '6006'])
-    time.sleep(10)
-    print("Tensorboard running on http://localhost:6006")
+    logger = WandbLogger(
+        project=os.environ.get("WANDB_PROJECT"),
+        entity=os.environ.get("WANDB_USER"),
+        name="unet-local-test",
+    )
 
-    try:
-        data_path = os.environ['SAVE_PATH']
-        shutil.unpack_archive(r'C:\Users\lex\Downloads\data.zip', data_path + '/data_sample/')
-        dataset = UNetDataset(path=data_path + '/',
-                              hw=hyperparameters['hw'],
-                              mode=hyperparameters['delta_mode'],
-                              n=50)
-        dataloader = DataLoader(dataset, batch_size=hyperparameters['batch_size'], shuffle=True)
-        in_channels = 7 if hyperparameters['delta_mode'] == 'dino' else 9
-        unet = UNet(hyperparameters['filters'], in_channels=in_channels, n_heads=8)
-        model = UNetLightning(unet, hyperparameters)
-        trainer = Trainer(max_epochs=50, logger=logger)
-        trainer.fit(model, dataloader)
-        torch.save(model.unet.state_dict(), "unet.pt")
-    finally:
-        tb_process.terminate()
-        print("Terminated Tensorboard Process")
+    data_path = os.environ['SAVE_PATH']
+    shutil.unpack_archive(r'C:\Users\lex\Downloads\data.zip', data_path + '/data_sample/')
+    dataset = UNetDataset(path=data_path + '/',
+                          hw=hyperparameters['hw'],
+                          mode=hyperparameters['delta_mode'],
+                          n=50)
+    dataloader = DataLoader(dataset, batch_size=hyperparameters['batch_size'], shuffle=True)
+    in_channels = 7 if hyperparameters['delta_mode'] == 'dino' else 9
+    unet = UNet(hyperparameters['filters'], in_channels=in_channels, n_heads=8)
+    model = UNetLightning(unet, hyperparameters)
+    trainer = Trainer(max_epochs=50, logger=logger)
+    trainer.fit(model, dataloader)
+    torch.save(model.unet.state_dict(), "unet.pt")
+    wandb.finish()
