@@ -9,9 +9,14 @@ load_dotenv()
 
 assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file"
 
-def save_to(dataset, path, frequency_table):
+def save_to(dataset, path, frequency_table, commit_fn=None):
     compositor = ImageCompositor()
     for i, item in enumerate(dataset):
+        # Resume support: skip already-processed items
+        if (os.path.exists(path + f"/data_sample/success/{i}/meta.json") or
+            os.path.exists(path + f"/data_sample/fail/{i}/meta.json")):
+            continue
+
         if item == -1: # Failed dataset get request
             continue
 
@@ -102,10 +107,20 @@ def save_to(dataset, path, frequency_table):
         with open(path+f"/data_sample/"+bucket+f"{i}/meta.json", 'w') as f:
             json.dump(meta, f, indent=4)
 
+        if commit_fn and i % 50 == 0:
+            commit_fn()
+
 if __name__ == "__main__":
-    dataset = PicobananaDataset(n = 50)
-    freq =  {edittype:2 for edittype in dataset.edit_types}
+    dataset = PicobananaDataset(n=100_000, return_img=True)
     asyncio.run(dataset.prepare_data())
 
-    save_to(dataset, os.environ['SAVE_PATH'], freq)
-    shutil.make_archive(os.environ['SAVE_PATH'] + '/data_sample', 'zip', os.environ['SAVE_PATH'] + '/data_sample')
+    freq = {edittype:float('inf') for edittype in dataset.edit_types}
+    try:
+        with torch.no_grad():
+            save_to(dataset, os.environ['SAVE_PATH'], freq)
+    except Exception as e:
+        print(e)
+        if input('Press e to delete ') == 'e':
+            shutil.rmtree(os.environ['SAVE_PATH'] + '/data_sample')
+    finally:
+        shutil.make_archive(os.environ['SAVE_PATH'] + '/data_sample', 'zip', os.environ['SAVE_PATH'] + '/data_sample')

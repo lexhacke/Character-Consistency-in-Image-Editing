@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(python:*)",
+      "Bash(python3 -m modal run:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:modal.com)"
+    ]
+  }
+}
