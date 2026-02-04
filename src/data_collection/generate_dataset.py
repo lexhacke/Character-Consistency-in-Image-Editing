@@ -36,7 +36,6 @@ def save_to(dataset, path, frequency_table, commit_fn=None):
         else:
             edited = edited.resize(original.size, PIL.Image.BILINEAR)
             composite_json = compositor.get_composite_json(compositor._img_to_bytes(edited), compositor._img_to_bytes(original), prompt)
-        print(composite_json)
 
         # Requests the segmaps from SAM3 given the composite_json
         segmaps = compositor.get_segmaps(edited, original, composite_json)
@@ -46,6 +45,8 @@ def save_to(dataset, path, frequency_table, commit_fn=None):
         base = original if composite_json['base'] == 'original' else edited
         other = original if composite_json['base'] == 'edited' else edited
         base, other = base.cpu().numpy(), other.cpu().numpy()
+
+        assert base.ndim == 3 and other.ndim == 3, f"From Picobanana dataset, got {base.shape} or {other.shape} not RGB"
 
         # Simple bucketing "fail" as any instance where SAM3 couldn't segment an object queried by the VLM
         bucket = "fail/" if len(segmaps['failed']['subtraction']) > 0 or len(segmaps['failed']['union']) > 0 else "success/"
@@ -67,16 +68,19 @@ def save_to(dataset, path, frequency_table, commit_fn=None):
         }
 
         # Since SAM3 will output many segmentation maps for one image, we will just take the logical_or of all of them.
-        sub_mask = np.zeros_like(original)
+        h, w = original.shape[:2]
+        sub_mask = np.zeros((h, w))
         for segmap, obj in segmaps['segmaps']['subtraction']:
-            segmap = segmap.unsqueeze(-1)[0]
+            segmap = segmap[0]
             segmap = segmap.cpu().numpy()
+            assert segmap.ndim == 2, f"Expected H, W segmap got {segmap.shape}"
             sub_mask = np.logical_or(segmap, sub_mask)
 
-        union_mask = np.zeros_like(original)
+        union_mask = np.zeros((h, w))
         for segmap, obj in segmaps['segmaps']['union']:
-            segmap = segmap.unsqueeze(-1)[0]
+            segmap = segmap[0]
             segmap = segmap.cpu().numpy()
+            assert segmap.ndim == 2, f"Expected H, W segmap got {segmap.shape}"
             union_mask = np.logical_or(segmap, union_mask)
 
         PIL.Image.fromarray((sub_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/subtraction_mask.png")
@@ -85,14 +89,12 @@ def save_to(dataset, path, frequency_table, commit_fn=None):
         mask = np.logical_or(union_mask, sub_mask)
 
         # Ensure broadcastability between H W C images
-        if len(base.shape) == 2:
-            base = base[:, :, np.newaxis]
-        if len(other.shape) == 2:
-            other = other[:, :, np.newaxis]
-        if len(mask.shape) == 2:
-            mask = mask[:, :, np.newaxis]
+        base = base[:, :, np.newaxis] if base.ndim == 2 else base
+        other = other[:, :, np.newaxis] if other.ndim == 2 else other
+        mask = mask[:, :, np.newaxis] if mask.ndim == 2 else mask
 
         mask = expand_mask(mask)
+        assert (mask.ndim == base.ndim and base.ndim == other.ndim and base.ndim == 3), f"Why is this not H,W,C? {mask.shape, base.shape, base.shape}"
         composite = blend(mask, base, other, mode="laplacian")
 
         PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/mask.png")
