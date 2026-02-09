@@ -2,3 +2,5 @@ src/data_collection/__pycache__
 src/models/__pycache__
 src/models/data_sample
 src/.env
+.claude
+data_bucket

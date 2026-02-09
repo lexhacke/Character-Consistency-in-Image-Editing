@@ -52,7 +52,7 @@ def download_models():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
-    .pip_install_from_requirements('requirementx.txt')
+    .pip_install_from_requirements('data_collection/requirements.txt')
     .run_function(download_models, gpu="any", secrets=[api_secret])
 )
 

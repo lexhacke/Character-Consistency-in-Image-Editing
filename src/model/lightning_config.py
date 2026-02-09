@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel
 from lightning.pytorch import LightningModule, Trainer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 from unet import UNet
 from unet_dataset import UNetDataset
@@ -32,9 +32,18 @@ class UNetLightning(LightningModule):
         self.DiceLoss = DiceLossFromLogits(smooth=hyperparams['smooth'])
         self.focal_weight = hyperparams['focal_weight']
         self.cache = None
+        self.val_cache = None
 
     def forward(self, original, edited, delta):
         return self.unet(torch.cat([original, edited, delta], dim=1))
+
+    def _compute_loss(self, batch):
+        y = batch['mask']
+        yhat = self(batch['original'], batch['edited'], batch['delta'])
+        focal_loss = self.FocalLoss(y, yhat)
+        dice_loss = self.DiceLoss(y, yhat)
+        loss = focal_loss * self.focal_weight + dice_loss
+        return focal_loss, dice_loss, loss
 
     def training_step(self, batch, batch_idx):
         y = batch['mask']
@@ -85,6 +94,42 @@ class UNetLightning(LightningModule):
             "mask_pred": _to_wandb_img(y_hat[0]),
         })
 
+    def validation_step(self, batch, batch_idx):
+        focal_loss, dice_loss, loss = self._compute_loss(batch)
+        self.log('val_Dice', dice_loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val_Focal', focal_loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val_Total', loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
+        if batch_idx == 0:
+            self.val_cache = (batch['original'][0:1].detach(),
+                              batch['edited'][0:1].detach(),
+                              batch['mask'][0:1].detach(),
+                              batch['delta'][0:1].detach())
+        return loss
+
+    def on_validation_epoch_end(self):
+        if self.val_cache is None:
+            return
+        original, edited, mask, delta = self.val_cache
+        self.unet.eval()
+        with torch.no_grad():
+            y_hat = torch.sigmoid(self(original, edited, delta))
+        self.unet.train()
+
+        import wandb
+        def _to_wandb_img(t):
+            img = t.detach().cpu().clamp(0, 1)
+            if img.shape[0] == 1:
+                img = img.repeat(3, 1, 1)
+            return wandb.Image((img.permute(1, 2, 0).numpy() * 255).astype(np.uint8))
+        self.logger.experiment.log({
+            "Evaluation Images": [
+                _to_wandb_img(original[0] * 0.5 + 0.5),
+                _to_wandb_img(mask[0]),
+                _to_wandb_img(y_hat[0]),
+            ]
+        })
+        self.val_cache = None
+
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
@@ -103,15 +148,22 @@ if __name__ == "__main__":
 
     data_path = os.environ['SAVE_PATH']
     shutil.unpack_archive(r'C:\Users\lex\Downloads\data.zip', data_path + '/data_sample/')
-    dataset = UNetDataset(path=data_path + '/',
-                          hw=hyperparameters['hw'],
-                          mode=hyperparameters['delta_mode'],
-                          n=50)
-    dataloader = DataLoader(dataset, batch_size=hyperparameters['batch_size'], shuffle=True)
+    full_dataset = UNetDataset(path=data_path + '/',
+                               hw=hyperparameters['hw'],
+                               mode=hyperparameters['delta_mode'],
+                               n=50)
+    val_size = max(1, len(full_dataset) // 10)
+    train_size = len(full_dataset) - val_size
+    train_dataset, val_dataset = random_split(
+        full_dataset, [train_size, val_size],
+        generator=torch.Generator().manual_seed(42),
+    )
+    dataloader = DataLoader(train_dataset, batch_size=hyperparameters['batch_size'], shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=hyperparameters['batch_size'], shuffle=False)
     in_channels = 7 if hyperparameters['delta_mode'] == 'dino' else 9
     unet = UNet(hyperparameters['filters'], in_channels=in_channels, n_heads=8)
     model = UNetLightning(unet, hyperparameters)
     trainer = Trainer(max_epochs=50, logger=logger)
-    trainer.fit(model, dataloader)
+    trainer.fit(model, dataloader, val_dataloaders=val_dataloader)
     torch.save(model.unet.state_dict(), "unet.pt")
     wandb.finish()

@@ -33,7 +33,7 @@ def download_models():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
-    .pip_install_from_requirements('requirementx.txt')
+    .pip_install_from_requirements('model/requirements.txt')
     .run_function(download_models, gpu="any", secrets=[api_secret])
 )
 
@@ -47,6 +47,7 @@ image = (
     .add_local_file(os.path.join(LOCAL_SRC, "losses.py"), "/root/model/losses.py")
     .add_local_file(os.path.join(LOCAL_SRC, "unet_dataset.py"), "/root/model/unet_dataset.py")
     .add_local_file(os.path.join(LOCAL_SRC, "lightning_config.py"), "/root/model/lightning_config.py")
+    .add_local_file(os.path.join(LOCAL_SRC, "config.json"), "/root/model/config.json")
 )
 
 
@@ -64,11 +65,11 @@ image = (
     timeout=86400,
 )
 def train(
-    max_epochs: int = 50,
-    batch_size: int = 8,
-    lr: float = 2e-5,
+    max_epochs: int = None,
+    batch_size: int = None,
+    lr: float = None,
     n: int = None,
-    hw: int = 256,
+    hw: int = None,
 ):
     import sys
     sys.path.insert(0, "/root/model")
@@ -76,36 +77,63 @@ def train(
     # Must be set before importing unet_dataset (asserts at import time)
     os.environ["SAVE_PATH"] = DATASET_MOUNT
 
+    import json
     import torch
     import wandb
     from lightning.pytorch import Trainer
     from lightning.pytorch.loggers import WandbLogger
     from lightning.pytorch.callbacks import ModelCheckpoint
-    from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader, random_split
 
     from unet import UNet
     from unet_dataset import UNetDataset
     from lightning_config import UNetLightning, hyperparameters
 
-    # Override hyperparameters from CLI args
+    # Load config.json
+    with open("/root/model/config.json", "r") as f:
+        config = json.load(f)
+
+    # Use config values as defaults, allow CLI overrides
+    max_epochs = max_epochs if max_epochs is not None else config['max_epochs']
+    batch_size = batch_size if batch_size is not None else config['batch_size']
+    lr = lr if lr is not None else config['lr']
+    hw = hw if hw is not None else config['hw']
+
+    # Update hyperparameters with config values
+    hyperparameters.update(config)
+    # Override with CLI args if provided
     hyperparameters['batch_size'] = batch_size
     hyperparameters['lr'] = lr
     hyperparameters['hw'] = hw
 
     print(f"Training with: max_epochs={max_epochs}, batch_size={batch_size}, lr={lr}, hw={hw}, n={n}")
+    print(f"Full config: {hyperparameters}")
 
-    # Dataset
-    dataset = UNetDataset(
+    # Dataset + 90/10 train/val split
+    full_dataset = UNetDataset(
         path=DATASET_MOUNT + "/",
         hw=hyperparameters['hw'],
         mode=hyperparameters['delta_mode'],
         n=n,
     )
+    val_size = max(1, len(full_dataset) // 10)
+    train_size = len(full_dataset) - val_size
+    train_dataset, val_dataset = random_split(
+        full_dataset, [train_size, val_size],
+        generator=torch.Generator().manual_seed(42),
+    )
+    print(f"Split: {train_size} train, {val_size} val")
     dataloader = DataLoader(
-        dataset,
+        train_dataset,
         batch_size=hyperparameters['batch_size'],
         shuffle=True,
         num_workers=0,  # DinoMap uses CUDA in __getitem__, can't fork
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=hyperparameters['batch_size'],
+        shuffle=False,
+        num_workers=0,
     )
 
     # Model
@@ -142,7 +170,7 @@ def train(
         devices=1,
         precision="16-mixed",
     )
-    trainer.fit(model, dataloader)
+    trainer.fit(model, dataloader, val_dataloaders=val_dataloader)
 
     # Save final weights
     torch.save(
@@ -160,12 +188,25 @@ def train(
 # ---------------------------------------------------------------------------
 @app.local_entrypoint()
 def main(
-    max_epochs: int = 50,
-    batch_size: int = 8,
-    lr: float = 2e-5,
+    max_epochs: int = None,
+    batch_size: int = None,
+    lr: float = None,
     n: int = None,
-    hw: int = 256,
+    hw: int = None,
 ):
+    import json
+
+    # Load config.json for display
+    config_path = os.path.join(LOCAL_SRC, "config.json")
+    with open(config_path, "r") as f:
+        config = json.load(f)
+
+    # Use config values as defaults
+    max_epochs = max_epochs if max_epochs is not None else config['max_epochs']
+    batch_size = batch_size if batch_size is not None else config['batch_size']
+    lr = lr if lr is not None else config['lr']
+    hw = hw if hw is not None else config['hw']
+
     print(f"Launching training on Modal (max_epochs={max_epochs}, batch_size={batch_size}, lr={lr}, hw={hw}, n={n})...")
     train.remote(
         max_epochs=max_epochs,

@@ -189,6 +189,10 @@ Output: {{}}
                 response_schema=self.schema
             )
         )
+        if response.text is None:
+            print(f"Gemini API returned None for prompt: {prompt[:100]}")
+            print(f"Response: {response}")
+            raise ValueError("Gemini API returned empty response")
         return json.loads(response.text)
 
     def _url_to_img_bytes(self, url):

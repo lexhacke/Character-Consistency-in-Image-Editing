@@ -7,3 +7,5 @@ numpy
 einops
 python-dotenv
 opencv-python-headless
+torchvision
+accelerate

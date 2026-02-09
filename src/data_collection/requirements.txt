@@ -7,6 +7,7 @@ tqdm
 matplotlib
 transformers
 torch
+torchvision
 python-dotenv
 opencv-python-headless
 einops

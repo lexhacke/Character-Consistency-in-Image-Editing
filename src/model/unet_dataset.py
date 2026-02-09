@@ -31,6 +31,9 @@ class unet_processor:
             device = 'cpu'
             img = np.array(img, dtype=np.float32)
             img = torch.from_numpy(img)
+            # Handle grayscale images (add channel dimension)
+            if img.ndim == 2:
+                img = img.unsqueeze(-1)  # H W -> H W 1
             img = rearrange(img, 'H W C -> C H W')
 
         C, H, W = img.shape
