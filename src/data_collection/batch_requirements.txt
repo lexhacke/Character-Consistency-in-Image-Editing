@@ -1,0 +1,6 @@
+google-genai
+requests
+aiohttp
+tqdm
+Pillow
+matplotlib

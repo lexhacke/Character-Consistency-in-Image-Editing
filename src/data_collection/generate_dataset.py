@@ -9,7 +9,7 @@ load_dotenv()
 
 assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file"
 
-def save_to(dataset, path, frequency_table, commit_fn=None):
+def save_to(dataset, path, frequency_table, commit_fn=None, precomputed=None):
     compositor = ImageCompositor()
     for i, item in enumerate(dataset):
         # Resume support: skip already-processed items
@@ -20,22 +20,36 @@ def save_to(dataset, path, frequency_table, commit_fn=None):
         if item == -1: # Failed dataset get request
             continue
 
-        if item['edit_type'] in frequency_table:
-            frequency_table[item['edit_type']] -= 1
-            if frequency_table[item['edit_type']] == 0:
-                del frequency_table[item['edit_type']]
-        else:
+        edit_type = item['edit_type']
+        if edit_type not in frequency_table:
             continue
 
         prompt, original, edited = item['prompt'], item['original'], item['edited']
 
-        # Handling if the dataset returns urls or images (This is done because some VLMs only accept image_url input)
-        # Requests the composite_json from the VLM
-        if isinstance(original, str):
+        # Use precomputed Gemini result if available (from batch API), otherwise call online
+        dataset_key = item.get('key') if isinstance(item, dict) else None
+        lookup_key = dataset_key or f"req-{i}"
+        composite_json = None
+
+        if precomputed is not None:
+            if lookup_key not in precomputed:
+                print(f"[{i}] No precomputed result for key {lookup_key}, skipping")
+                continue
+            composite_json = precomputed[lookup_key]
+            if composite_json is None:
+                print(f"[{i}] Batch result was None for key {lookup_key}, skipping")
+                continue
+            if not isinstance(original, str):
+                edited = edited.resize(original.size, PIL.Image.BILINEAR)
+        elif isinstance(original, str):
             composite_json = compositor.get_composite_json(edited, original, prompt)
         else:
             edited = edited.resize(original.size, PIL.Image.BILINEAR)
             composite_json = compositor.get_composite_json(compositor._img_to_bytes(edited), compositor._img_to_bytes(original), prompt)
+
+        frequency_table[edit_type] -= 1
+        if frequency_table[edit_type] == 0:
+            del frequency_table[edit_type]
 
         # Requests the segmaps from SAM3 given the composite_json
         segmaps = compositor.get_segmaps(edited, original, composite_json)

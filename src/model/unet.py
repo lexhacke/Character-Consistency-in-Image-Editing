@@ -97,5 +97,5 @@ class UNet(nn.Module):
 if __name__ == "__main__":
     config = json.load(open("model/config.json"))
     unet = UNet(config['filters'], in_channels=7, n_heads=8)
-    unet.load_state_dict("model/unet_final.py")
+    unet.load_state_dict(torch.load("model/unet_final.pt"))
     print(unet(torch.randn(4, 7, config['hw'], config['hw'])).shape)

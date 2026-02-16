@@ -1,4 +1,4 @@
-import PIL.Image, json, requests, io
+import PIL.Image, json, requests, io, time
 import matplotlib.pyplot as plt
 import asyncio
 import aiohttp
@@ -77,26 +77,42 @@ class PicobananaDataset:
         edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/" + item['output_image']
 
         if self.return_img:
-            try:
-                # Load Original
-                if local_path.exists():
-                    og_img = PIL.Image.open(local_path).convert("RGB")
-                else:
-                    resp = requests.get(item['open_image_input_url'], timeout=10)
-                    og_img = PIL.Image.open(io.BytesIO(resp.content)).convert("RGB")
-                
-                # Load Edited (Always from Web in this setup)
-                resp_edit = requests.get(edit_url, timeout=10)
-                edit_img = PIL.Image.open(io.BytesIO(resp_edit.content)).convert("RGB")
-                
-                return {
-                    'prompt': prompt,
-                    'original': og_img,
-                    'edited': edit_img,
-                    'edit_type': edit_type
-                }
-            except:
-                return -1
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    # Load Original
+                    if local_path.exists():
+                        og_img = PIL.Image.open(local_path).convert("RGB")
+                    else:
+                        resp = requests.get(item['open_image_input_url'], timeout=30)
+                        if resp.status_code == 429:
+                            raise requests.exceptions.HTTPError("429 Too Many Requests", response=resp)
+                        resp.raise_for_status()
+                        og_img = PIL.Image.open(io.BytesIO(resp.content)).convert("RGB")
+
+                    # Load Edited (Always from Web in this setup)
+                    resp_edit = requests.get(edit_url, timeout=30)
+                    if resp_edit.status_code == 429:
+                        raise requests.exceptions.HTTPError("429 Too Many Requests", response=resp_edit)
+                    resp_edit.raise_for_status()
+                    edit_img = PIL.Image.open(io.BytesIO(resp_edit.content)).convert("RGB")
+
+                    return {
+                        'prompt': prompt,
+                        'original': og_img,
+                        'edited': edit_img,
+                        'edit_type': edit_type
+                    }
+                except Exception as e:
+                    is_rate_limit = '429' in str(e)
+                    if attempt < max_retries - 1:
+                        delay = 30 * (attempt + 1) if is_rate_limit else 2 ** (attempt + 1)
+                        if is_rate_limit:
+                            print(f"[dataset] 429 rate limited idx={index}, backing off {delay}s (attempt {attempt+1}/{max_retries})")
+                        time.sleep(delay)
+                    else:
+                        print(f"[dataset] Failed to download idx={index} after {max_retries} attempts: {e}")
+                        return -1
         
         return {
             'prompt': prompt,

@@ -52,7 +52,7 @@ def download_models():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
-    .pip_install_from_requirements('data_collection/requirements.txt')
+    .pip_install_from_requirements(os.path.join(LOCAL_SRC, "requirements.txt"))
     .run_function(download_models, gpu="any", secrets=[api_secret])
 )
 
@@ -64,6 +64,7 @@ image = (
     .add_local_file(os.path.join(LOCAL_SRC, "dataset.py"), "/root/src/dataset.py")
     .add_local_file(os.path.join(LOCAL_SRC, "image_compositor.py"), "/root/src/image_compositor.py")
     .add_local_file(os.path.join(LOCAL_SRC, "blending.py"), "/root/src/blending.py")
+    .add_local_file(os.path.join(LOCAL_SRC, "system_prompt.py"), "/root/src/system_prompt.py")
     .add_local_file(os.path.join(LOCAL_SRC, "generate_dataset.py"), "/root/src/generate_dataset.py")
 )
 
@@ -78,7 +79,7 @@ image = (
     volumes={VOLUME_MOUNT_PATH: output_volume},
     timeout=86400,
 )
-def generate_dataset(n: int = 200_000, start_index: int = 0):
+def generate_dataset(n: int = 200_000, start_index: int = 0, batch_mode: bool = False):
     import sys
     sys.path.insert(0, "/root/src")
 
@@ -86,39 +87,116 @@ def generate_dataset(n: int = 200_000, start_index: int = 0):
     os.environ["SAVE_PATH"] = VOLUME_MOUNT_PATH
 
     import asyncio
+    import json
     import torch
     import shutil
-    from dataset import PicobananaDataset
+    import PIL.Image
     from generate_dataset import save_to
 
-    print(f"Starting dataset generation: n={n}, start_index={start_index}")
+    if batch_mode:
+        # ── Phase 3: Use precomputed Gemini results from batch_cache ──
+        cache_dir = os.path.join(VOLUME_MOUNT_PATH, "batch_cache")
+        manifest_path = os.path.join(cache_dir, "manifest.json")
+        results_path = os.path.join(cache_dir, "results.json")
 
-    dataset = PicobananaDataset(n=n, start_index=start_index, return_img=True)
-    asyncio.run(dataset.prepare_data())
+        if not os.path.exists(manifest_path) or not os.path.exists(results_path):
+            raise FileNotFoundError(
+                "batch_cache/manifest.json or results.json not found. "
+                "Run batch_prep_modal.py first (Phase 1+2)."
+            )
 
-    freq = {edittype: float("inf") for edittype in dataset.edit_types}
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+        with open(results_path) as f:
+            precomputed = json.load(f)
 
-    try:
-        with torch.no_grad():
-            save_to(dataset, VOLUME_MOUNT_PATH, freq, commit_fn=output_volume.commit)
-    except Exception as e:
-        print(f"Error during generation: {e}")
-        raise
-    finally:
-        data_sample_path = os.path.join(VOLUME_MOUNT_PATH, "data_sample")
-        if os.path.exists(data_sample_path):
-            shutil.make_archive(data_sample_path, "zip", data_sample_path)
-            print(f"Archive created at {data_sample_path}.zip")
-        output_volume.commit()
+        available_keys = set(precomputed.keys())
+        filtered_manifest = [entry for entry in manifest if entry['key'] in available_keys]
+        missing = len(manifest) - len(filtered_manifest)
+        if missing:
+            print(f"Batch mode: skipping {missing} manifest entries without precomputed results")
+        manifest = filtered_manifest
+
+        print(f"Batch mode: {len(manifest)} items, {len(precomputed)} precomputed results")
+
+        # Collect edit types from manifest
+        edit_types = {e['edit_type'] for e in manifest}
+        freq = {et: float("inf") for et in edit_types}
+
+        # Lazy dataset that loads images from volume on iteration
+        dataset = _BatchDataset(manifest)
+
+        try:
+            with torch.no_grad():
+                save_to(dataset, VOLUME_MOUNT_PATH, freq,
+                        commit_fn=output_volume.commit, precomputed=precomputed)
+        except Exception as e:
+            print(f"Error during batch generation: {e}")
+            raise
+        finally:
+            output_volume.commit()
+    else:
+        # ── Online mode: download + call Gemini live ──
+        from dataset import PicobananaDataset
+
+        print(f"Starting dataset generation: n={n}, start_index={start_index}")
+
+        dataset = PicobananaDataset(n=n, start_index=start_index, return_img=True)
+        asyncio.run(dataset.prepare_data())
+
+        freq = {edittype: float("inf") for edittype in dataset.edit_types}
+
+        try:
+            with torch.no_grad():
+                save_to(dataset, VOLUME_MOUNT_PATH, freq, commit_fn=output_volume.commit)
+        except Exception as e:
+            print(f"Error during generation: {e}")
+            raise
+        finally:
+            data_sample_path = os.path.join(VOLUME_MOUNT_PATH, "data_sample")
+            if os.path.exists(data_sample_path):
+                shutil.make_archive(data_sample_path, "zip", data_sample_path)
+                print(f"Archive created at {data_sample_path}.zip")
+            output_volume.commit()
 
     print("Dataset generation complete.")
+
+
+class _BatchDataset:
+    """Lazy iterator over manifest entries. Loads images from volume on demand."""
+
+    def __init__(self, manifest):
+        self.manifest = manifest
+
+    def __len__(self):
+        return len(self.manifest)
+
+    def __iter__(self):
+        import PIL.Image
+        for entry in self.manifest:
+            try:
+                original = PIL.Image.open(entry['original_path']).convert('RGB')
+                edited = PIL.Image.open(entry['edited_path']).convert('RGB')
+                yield {
+                    'key': entry['key'],
+                    'prompt': entry['prompt'],
+                    'original': original,
+                    'edited': edited,
+                    'edit_type': entry['edit_type'],
+                }
+            except Exception as e:
+                print(f"Failed to load images for {entry['key']}: {e}")
+                yield -1
 
 
 # ---------------------------------------------------------------------------
 # CLI entrypoint: modal run generate_dataset_run_modal.py [--n 1000] [--start-index 0]
 # ---------------------------------------------------------------------------
 @app.local_entrypoint()
-def main(n: int = 200_000, start_index: int = 0):
-    print(f"Launching on Modal (n={n}, start_index={start_index})...")
-    generate_dataset.remote(n=n, start_index=start_index)
+def main(n: int = 200_000, start_index: int = 0, batch_mode: bool = False):
+    if batch_mode:
+        print("Launching Phase 3 (batch mode) on Modal...")
+    else:
+        print(f"Launching on Modal (n={n}, start_index={start_index})...")
+    generate_dataset.remote(n=n, start_index=start_index, batch_mode=batch_mode)
     print("Done. Data saved to Modal Volume 'picobanana-dataset'.")
