@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, random
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -32,7 +32,9 @@ class UNetLightning(LightningModule):
         self.DiceLoss = DiceLossFromLogits(smooth=hyperparams['smooth'])
         self.focal_weight = hyperparams['focal_weight']
         self.cache = None
-        self.val_cache = None
+        self.val_samples = []
+        self.val_sample_count = 0
+        self.max_val_samples = 20
 
     def forward(self, original, edited, delta):
         return self.unet(torch.cat([original, edited, delta], dim=1))
@@ -65,18 +67,6 @@ class UNetLightning(LightningModule):
     def on_train_epoch_end(self):
         original, edited, mask, delta = self.cache
 
-        # Recall that mask is what we stitch from edited onto original
-        hard_mask = mask > 0.5
-        not_mask = hard_mask.logical_not()
-        composite = original * not_mask.float() + edited * hard_mask.float()
-        with torch.no_grad():
-            v = self.dino(F.interpolate(composite * 0.5 + 0.5, size=(224, 224), mode='bilinear')).last_hidden_state[0]
-            w = self.dino(F.interpolate(edited * 0.5 + 0.5, size=(224, 224), mode='bilinear')).last_hidden_state[0]
-        v = v / v.norm(dim=-1, keepdim=True)
-        w = w / w.norm(dim=-1, keepdim=True)
-        cosine_sim = (v * w).sum(dim=-1)
-        self.log('Dino_Cosine', cosine_sim.mean(), on_step=False, on_epoch=True, prog_bar=True)
-
         self.unet.eval()
         with torch.no_grad():
             y_hat = torch.sigmoid(self(original, edited, delta))
@@ -94,26 +84,48 @@ class UNetLightning(LightningModule):
             "mask_pred": _to_wandb_img(y_hat[0]),
         })
 
+    def on_validation_epoch_start(self):
+        self.val_samples = []
+        self.val_sample_count = 0
+
     def validation_step(self, batch, batch_idx):
         focal_loss, dice_loss, loss = self._compute_loss(batch)
+        B = batch['original'].shape[0]
         self.log('val_Dice', dice_loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val_Focal', focal_loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
         self.log('val_Total', loss.detach(), on_step=False, on_epoch=True, prog_bar=True)
-        if batch_idx == 0:
-            self.val_cache = (batch['original'][0:1].detach(),
-                              batch['edited'][0:1].detach(),
-                              batch['mask'][0:1].detach(),
-                              batch['delta'][0:1].detach())
+
+        # DINO cosine: composite vs edited
+        original, edited, mask = batch['original'], batch['edited'], batch['mask']
+        hard_mask = mask > 0.5
+        composite = original * (~hard_mask).float() + edited * hard_mask.float()
+        with torch.no_grad():
+            v = self.dino(F.interpolate(composite * 0.5 + 0.5, size=(224, 224), mode='bilinear')).last_hidden_state
+            w = self.dino(F.interpolate(edited * 0.5 + 0.5, size=(224, 224), mode='bilinear')).last_hidden_state
+        v = v / v.norm(dim=-1, keepdim=True)
+        w = w / w.norm(dim=-1, keepdim=True)
+        cosine_sim = (v * w).sum(dim=-1).mean(dim=-1)  # per-sample mean over tokens
+        self.log('val_Dino_Cosine', cosine_sim.mean(), on_step=False, on_epoch=True, prog_bar=True, batch_size=B)
+        self.log('val_Dino_PassRate', (cosine_sim > 0.93).float().mean(), on_step=False, on_epoch=True, prog_bar=True, batch_size=B)
+        # Reservoir sampling: collect up to max_val_samples random items
+        B = batch['original'].shape[0]
+        for i in range(B):
+            self.val_sample_count += 1
+            entry = (batch['original'][i:i+1].detach(),
+                     batch['edited'][i:i+1].detach(),
+                     batch['mask'][i:i+1].detach(),
+                     batch['delta'][i:i+1].detach())
+            if len(self.val_samples) < self.max_val_samples:
+                self.val_samples.append(entry)
+            else:
+                j = random.randint(0, self.val_sample_count - 1)
+                if j < self.max_val_samples:
+                    self.val_samples[j] = entry
         return loss
 
     def on_validation_epoch_end(self):
-        if self.val_cache is None:
+        if not self.val_samples:
             return
-        original, edited, mask, delta = self.val_cache
-        self.unet.eval()
-        with torch.no_grad():
-            y_hat = torch.sigmoid(self(original, edited, delta))
-        self.unet.train()
 
         import wandb
         def _to_wandb_img(t):
@@ -121,14 +133,26 @@ class UNetLightning(LightningModule):
             if img.shape[0] == 1:
                 img = img.repeat(3, 1, 1)
             return wandb.Image((img.permute(1, 2, 0).numpy() * 255).astype(np.uint8))
+
+        self.unet.eval()
+        rows = []
+        with torch.no_grad():
+            for original, edited, mask, delta in self.val_samples:
+                y_hat = torch.sigmoid(self(original, edited, delta))
+                rows.append([
+                    _to_wandb_img(original[0] * 0.5 + 0.5),
+                    _to_wandb_img(mask[0]),
+                    _to_wandb_img(y_hat[0]),
+                ])
+        self.unet.train()
+
         self.logger.experiment.log({
-            "Evaluation Images": [
-                _to_wandb_img(original[0] * 0.5 + 0.5),
-                _to_wandb_img(mask[0]),
-                _to_wandb_img(y_hat[0]),
-            ]
+            "val_samples": wandb.Table(
+                columns=["original", "mask_gt", "mask_pred"],
+                data=rows,
+            )
         })
-        self.val_cache = None
+        self.val_samples = []
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)

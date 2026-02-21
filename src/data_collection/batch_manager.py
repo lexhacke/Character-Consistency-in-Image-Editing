@@ -4,7 +4,7 @@ Batch API utilities for Gemini batch processing.
 Handles File API uploads, JSONL construction, batch submission,
 polling, result download, and cleanup.
 """
-import json, os, time, tempfile
+import json, os, time, tempfile, concurrent.futures
 from typing import Any, Callable
 from google import genai
 from google.genai import types
@@ -166,12 +166,23 @@ class BatchManager:
             except Exception as e:
                 print(f"Failed to delete {name}: {e}")
 
-    def _with_retries(self, fn: Callable[[], Any], operation: str, swallow: bool = False):
-        """Retry a Google API call with exponential backoff."""
+    def _with_retries(self, fn: Callable[[], Any], operation: str, swallow: bool = False, timeout: float = 120):
+        """Retry a Google API call with exponential backoff and hard timeout."""
         attempt = 0
         while True:
             try:
-                return fn()
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(fn)
+                    return future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                attempt += 1
+                if attempt >= self.max_retries:
+                    msg = f"{operation} timed out after {timeout}s ({self.max_retries} attempts)"
+                    if swallow:
+                        print(msg)
+                        return None
+                    raise TimeoutError(msg)
+                print(f"{operation} timed out after {timeout}s (attempt {attempt}/{self.max_retries}). Retrying...")
             except Exception as exc:
                 attempt += 1
                 if attempt >= self.max_retries:

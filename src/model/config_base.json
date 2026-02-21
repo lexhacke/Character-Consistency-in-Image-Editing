@@ -1,0 +1,13 @@
+{
+    "max_epochs" : 10,
+    "batch_size" : 64,
+    "lr" : 5e-6,
+    "hw" : 256,
+    "focal_weight": 20,
+    "gamma": 2,
+    "alpha": 0.75,
+    "skip_zero_edit": true,
+    "filters": [64, 128, 256, 512],
+    "smooth": 1e-5,
+    "delta_mode": "dino"
+}

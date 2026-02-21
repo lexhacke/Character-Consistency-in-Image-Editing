@@ -1,6 +1,13 @@
-src/data_collection/__pycache__
-src/models/__pycache__
+__pycache__/
+*.ckpt
+*.pt
+nul
 src/models/data_sample
+src/data_collection/bad_bucket
+src/data_collection/good_bucket
 src/.env
 .claude
+data_bucket
+data_sample_backup
+runs
 data_bucket

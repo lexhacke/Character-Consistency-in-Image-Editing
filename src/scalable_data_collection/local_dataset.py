@@ -83,12 +83,12 @@ class LocalPicobananaDataset:
         edit_url = "https://ml-site.cdn-apple.com/datasets/pico-banana-300k/nb/" + item['output_image']
 
         if self.return_img:
-            max_retries = 5
+            max_retries = 3
             for attempt in range(max_retries):
                 try:
                     og_img = PIL.Image.open(local_path).convert("RGB")
 
-                    resp_edit = requests.get(edit_url, timeout=30)
+                    resp_edit = requests.get(edit_url, timeout=(10, 30))
                     if resp_edit.status_code == 429:
                         raise requests.exceptions.HTTPError("429 Too Many Requests", response=resp_edit)
                     resp_edit.raise_for_status()

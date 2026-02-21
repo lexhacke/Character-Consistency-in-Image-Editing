@@ -33,7 +33,7 @@ def download_models():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
-    .pip_install_from_requirements('model/requirements.txt')
+    .pip_install_from_requirements(os.path.join(LOCAL_SRC, 'requirements.txt'))
     .run_function(download_models, gpu="any", secrets=[api_secret])
 )
 
@@ -67,9 +67,11 @@ image = (
 def train(
     max_epochs: int = None,
     batch_size: int = None,
+    num_workers: int = 0,
     lr: float = None,
     n: int = None,
     hw: int = None,
+    run_name: str = None,
 ):
     import sys
     sys.path.insert(0, "/root/model")
@@ -97,6 +99,7 @@ def train(
     max_epochs = max_epochs if max_epochs is not None else config['max_epochs']
     batch_size = batch_size if batch_size is not None else config['batch_size']
     lr = lr if lr is not None else config['lr']
+    lr *= batch_size / 8
     hw = hw if hw is not None else config['hw']
 
     # Update hyperparameters with config values
@@ -127,13 +130,13 @@ def train(
         train_dataset,
         batch_size=hyperparameters['batch_size'],
         shuffle=True,
-        num_workers=0,  # DinoMap uses CUDA in __getitem__, can't fork
+        num_workers=num_workers,  # DinoMap uses CUDA in __getitem__, can't fork
     )
     val_dataloader = DataLoader(
         val_dataset,
         batch_size=hyperparameters['batch_size'],
         shuffle=False,
-        num_workers=0,
+        num_workers=num_workers,
     )
 
     # Model
@@ -141,11 +144,15 @@ def train(
     unet = UNet(hyperparameters['filters'], in_channels=in_channels, n_heads=8)
     model = UNetLightning(unet, hyperparameters)
 
+    # Run name
+    if run_name is None:
+        run_name = f"unet-{hw}px-bs{batch_size}-lr{lr}"
+
     # WandB logger
     wandb_logger = WandbLogger(
         project=os.environ.get("WANDB_PROJECT", "character-consistency"),
         entity=os.environ.get("WANDB_USER"),
-        name=f"unet-{hw}px-bs{batch_size}-lr{lr}",
+        name=run_name,
         log_model=False,
         save_dir=CHECKPOINT_MOUNT,
     )
@@ -153,7 +160,7 @@ def train(
 
     # Checkpoint callback
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(CHECKPOINT_MOUNT, "checkpoints"),
+        dirpath=os.path.join(CHECKPOINT_MOUNT, "checkpoints", run_name),
         filename="unet-{epoch:02d}-{Total_epoch:.4f}",
         save_top_k=3,
         monitor="Total_epoch",
@@ -169,6 +176,7 @@ def train(
         accelerator="gpu",
         devices=1,
         precision="16-mixed",
+        log_every_n_steps=1,
     )
     trainer.fit(model, dataloader, val_dataloaders=val_dataloader)
 
@@ -190,9 +198,11 @@ def train(
 def main(
     max_epochs: int = None,
     batch_size: int = None,
+    num_workers: int = 0,
     lr: float = None,
     n: int = None,
     hw: int = None,
+    run_name: str = None,
 ):
     import json
 
@@ -214,5 +224,7 @@ def main(
         lr=lr,
         n=n,
         hw=hw,
+        num_workers=num_workers,
+        run_name=run_name,
     )
     print("Done. Checkpoints saved to Modal Volume 'picobanana-checkpoints'.")

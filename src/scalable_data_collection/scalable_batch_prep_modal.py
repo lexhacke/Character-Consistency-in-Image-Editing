@@ -302,8 +302,9 @@ def batch_prep(n: int = 200_000, start_index: int = 0, chunk_size: int = 5000):
 
         entries = []
         uploaded_file_names = []
+        total_uploads = len(chunk) * 2
 
-        for entry in chunk:
+        for i, entry in enumerate(chunk):
             with open(entry['original_path'], 'rb') as f:
                 orig_bytes = f.read()
             with open(entry['edited_path'], 'rb') as f:
@@ -316,6 +317,9 @@ def batch_prep(n: int = 200_000, start_index: int = 0, chunk_size: int = 5000):
             sys_prompt = build_system_prompt(entry['prompt'])
             batch_entry = bm.build_entry(entry['key'], orig_file, edit_file, sys_prompt)
             entries.append(batch_entry)
+
+            if (i + 1) % 100 == 0:
+                print(f"  Uploading: {len(uploaded_file_names)}/{total_uploads} files...")
 
         print(f"Uploaded {len(uploaded_file_names)} files to File API")
 

@@ -5,7 +5,13 @@
       "Bash(python:*)",
       "Bash(python3 -m modal run:*)",
       "Bash(python3:*)",
-      "WebFetch(domain:modal.com)"
+      "WebFetch(domain:modal.com)",
+      "Bash(powershell -Command \"Stop-Process -Name explorer -Force; Start-Process explorer\")",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(modal run:*)",
+      "Bash(where modal:*)",
+      "Bash(where.exe modal)",
+      "Bash(findstr:*)"
     ]
   }
 }
