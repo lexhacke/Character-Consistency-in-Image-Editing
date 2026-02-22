@@ -158,6 +158,25 @@ class unet_processor:
         else:
             return img / 127.5 - 1
 
+    def decode(self, img, is_mask, orig_h, orig_w):
+        """Undo pad + normalize → [0,255] uint8 PIL.
+        Pass orig_h, orig_w (original image dims) to remove padding and resize back."""
+        # Remove padding
+        if orig_h is not None and orig_w is not None:
+            ratio = self.hw / max(orig_h, orig_w)
+            content_h = int(orig_h * ratio + 0.5)
+            content_w = int(orig_w * ratio + 0.5)
+            img = img[:, :content_h, :content_w]
+        # Undo normalize
+        if is_mask:
+            img = (img * 255).clamp(0, 255).byte()
+        else:
+            img = ((img + 1) * 127.5).clamp(0, 255).byte()
+        # Resize back to original dims
+        if orig_h is not None and orig_w is not None:
+            img = nn.functional.interpolate(img.unsqueeze(0).float(), size=(orig_h, orig_w), mode='bilinear', align_corners=False)[0].byte()
+        return PIL.Image.fromarray(rearrange(img, 'C H W -> H W C').cpu().numpy())
+
     def pad_to_square(self, img, is_mask):
         """Pad to self.hw x self.hw with appropriate fill value."""
         C, H, W = img.shape
@@ -230,22 +249,12 @@ class UNetDataset(Dataset):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    dataset = UNetDataset(hw=512, path=r"C:\Users\lex\Documents\Ai2\data_sample_backup" + os.sep)
-    print(f"Dataset size: {len(dataset)}")
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-    for batch in dataloader:
-        print(batch['original'].shape)
-        for img in batch['original']:
-            plt.imshow(rearrange(img, "C H W -> H W C"))
-            plt.show()
-
-        print(batch['edited'].shape)
-        for img in batch['edited']:
-            plt.imshow(rearrange(img, "C H W -> H W C"))
-            plt.show()
-
-        print(batch['mask'].shape)
-        for img in batch['mask']:
-            plt.imshow(rearrange(img, "C H W -> H W C"))
-            plt.show()
-        break
+    p = unet_processor(256, 'cpu')
+    img = PIL.Image.open(r"C:\Users\lex\Documents\Ai2\src\hamster.jpg")
+    w, h = img.size
+    plt.imshow(img)
+    img = p.preprocess_img(img, False)
+    plt.show()
+    img = p.decode(img, False, h, w)
+    plt.imshow(img)
+    plt.show()
