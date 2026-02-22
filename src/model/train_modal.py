@@ -118,6 +118,7 @@ def train(
         hw=hyperparameters['hw'],
         mode=hyperparameters['delta_mode'],
         n=n,
+        skip_zero_edit=hyperparameters['skip_zero_edit']
     )
     val_size = max(1, len(full_dataset) // 10)
     train_size = len(full_dataset) - val_size
