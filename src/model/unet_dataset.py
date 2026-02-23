@@ -17,7 +17,7 @@ class Perturbations:
     Photometric transforms applied only to original/edited.
     Images are in [-1,1], mask is in [0,1].
     """
-    MASK_KEYS = frozenset(('mask',))
+    MASK_KEYS = frozenset(('mask', 'sub_mask', 'union_mask'))
 
     def __init__(
         self,
@@ -236,7 +236,7 @@ class UNetDataset(Dataset):
             datapoint['delta'] = self.processor.dino_delta(datapoint['edited'], datapoint['original'])
         # Resize + normalize (no padding yet)
         for key in ('original', 'edited', 'mask', 'sub_mask', 'union_mask'):
-            datapoint[key] = self.processor.preprocess_img(datapoint[key], key == 'mask')
+            datapoint[key] = self.processor.preprocess_img(datapoint[key], key in Perturbations.MASK_KEYS)
         if self.delta_mode == 'L1':
             datapoint['delta'] = torch.abs(datapoint['original'] - datapoint['edited'])
         # Augment on unpadded tensors
@@ -244,7 +244,7 @@ class UNetDataset(Dataset):
             datapoint = self.perturb.augment(datapoint)
         # Pad to square AFTER augmentation
         for key in datapoint:
-            datapoint[key] = self.processor.pad_to_square(datapoint[key], key == 'mask')
+            datapoint[key] = self.processor.pad_to_square(datapoint[key], key in Perturbations.MASK_KEYS)
         return datapoint
 
 if __name__ == "__main__":

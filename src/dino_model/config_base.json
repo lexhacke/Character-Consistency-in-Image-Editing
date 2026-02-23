@@ -1,0 +1,14 @@
+{
+    "max_epochs": 25,
+    "batch_size": 32,
+    "lr": 3e-6,
+    "hw": 256,
+    "focal_weight": 20,
+    "gamma": 2,
+    "alpha": 0.75,
+    "skip_zero_edit": true,
+    "smooth": 1e-5,
+    "segmenter_model_name": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+    "segmenter_layers": 4,
+    "segmenter_mlp_mult": 4
+}
