@@ -10,4 +10,8 @@ src/.env
 data_bucket
 data_sample_backup
 runs
-data_bucket
+.ipynb_checkpoints
+move.py
+data_quality.ipynb
+clean_data
+data
