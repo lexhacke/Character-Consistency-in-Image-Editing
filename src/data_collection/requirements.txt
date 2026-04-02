@@ -1,4 +1,5 @@
 sam3
+triton
 google-genai
 pillow
 requests
