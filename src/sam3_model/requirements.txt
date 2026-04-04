@@ -4,7 +4,7 @@
 
 # SAM3 core deps
 timm>=1.0.17
-numpy>=1.26,<2
+numpy==1.26.4
 ftfy==6.1.1
 regex
 iopath>=0.1.10
