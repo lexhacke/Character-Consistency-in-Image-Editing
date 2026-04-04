@@ -15,15 +15,19 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # ── 1. Build model ────────────────────────────────────────────────────────────
 print("\n[1] Building model...")
 model = build_sam3_image_model_fixed()
-model.float().eval()  # force everything to float32
-dtype = torch.float32
+model.eval()
+
+# Let the model stay in its native dtype — don't force float32
+# Use autocast so inputs/activations match whatever the model expects internally
+dtype = torch.bfloat16
+model = model.to(dtype)
 print(f"Using device: {device}, dtype: {dtype}")
 print("    OK")
 
 # ── 2. Check backbone_fpn[-1] shape ──────────────────────────────────────────
 print("\n[2] Checking backbone output shapes...")
 dummy_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
-with torch.no_grad():
+with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
     backbone_out = model.backbone.forward_image(dummy_img)
 
 fpn_last = backbone_out["backbone_fpn"][-1]
@@ -32,7 +36,7 @@ print(f"    vision_features:  {backbone_out['vision_features'].shape}")
 
 # ── 3. Check language_features shape ─────────────────────────────────────────
 print("\n[3] Checking text backbone output...")
-with torch.no_grad():
+with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
     text_out = model.backbone.forward_text(["a cat"], device=device)
 print(f"    language_features: {text_out['language_features'].shape}")  # [N, 1, 256]
 print(f"    language_mask:     {text_out['language_mask'].shape}")       # [1, N]
@@ -42,13 +46,13 @@ print("\n[4] Swapping language_features with original image tokens...")
 orig_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
 edit_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
 
-with torch.no_grad():
+with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
     backbone_out = model.backbone.forward_image(edit_img)
     orig_backbone = model.backbone.forward_image(orig_img)
 
 orig_tokens = orig_backbone["backbone_fpn"][-1]         # [1, 256, 36, 36]
 orig_tokens = orig_tokens.flatten(2).permute(2, 0, 1)   # [1296, 1, 256]
-orig_mask   = torch.zeros(1, orig_tokens.shape[0], dtype=torch.bool, device=device)  # [1, 1296]
+orig_mask   = torch.zeros(1, orig_tokens.shape[0], dtype=torch.bool, device=device)
 
 backbone_out["language_features"] = orig_tokens
 backbone_out["language_mask"]      = orig_mask
@@ -60,16 +64,13 @@ print("\n[5] Running forward_grounding...")
 from sam3.model.geometry_encoders import Prompt
 from types import SimpleNamespace
 
-# forward_grounding only reads find_input.text_ids and find_input.img_ids
 find_input = SimpleNamespace(
     img_ids=torch.tensor([0], device=device),
     text_ids=torch.tensor([0], device=device),
 )
-
-# Empty geometric prompt (no boxes, no points — all None)
 geo_prompt = Prompt()
 
-with torch.no_grad():
+with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
     out = model.forward_grounding(
         backbone_out=backbone_out,
         find_input=find_input,
