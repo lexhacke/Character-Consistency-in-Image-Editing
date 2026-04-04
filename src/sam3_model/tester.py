@@ -11,7 +11,8 @@ import torch
 from sam3_builder import build_sam3_image_model_fixed
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using device: {device}")
+dtype  = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+print(f"Using device: {device}, dtype: {dtype}")
 
 # ── 1. Build model ────────────────────────────────────────────────────────────
 print("\n[1] Building model...")
@@ -21,7 +22,7 @@ print("    OK")
 
 # ── 2. Check backbone_fpn[-1] shape ──────────────────────────────────────────
 print("\n[2] Checking backbone output shapes...")
-dummy_img = torch.randn(1, 3, 1008, 1008, device=device)
+dummy_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
 with torch.no_grad():
     backbone_out = model.backbone.forward_image(dummy_img)
 
@@ -38,8 +39,8 @@ print(f"    language_mask:     {text_out['language_mask'].shape}")       # [1, N
 
 # ── 4. Swap language_features with orig image tokens ─────────────────────────
 print("\n[4] Swapping language_features with original image tokens...")
-orig_img = torch.randn(1, 3, 1008, 1008, device=device)
-edit_img = torch.randn(1, 3, 1008, 1008, device=device)
+orig_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
+edit_img = torch.randn(1, 3, 1008, 1008, device=device, dtype=dtype)
 
 with torch.no_grad():
     backbone_out = model.backbone.forward_image(edit_img)
