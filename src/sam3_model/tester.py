@@ -11,13 +11,13 @@ import torch
 from sam3_builder import build_sam3_image_model_fixed
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-dtype  = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-print(f"Using device: {device}, dtype: {dtype}")
 
 # ── 1. Build model ────────────────────────────────────────────────────────────
 print("\n[1] Building model...")
 model = build_sam3_image_model_fixed()
-model.eval()
+model.float().eval()  # force everything to float32
+dtype = torch.float32
+print(f"Using device: {device}, dtype: {dtype}")
 print("    OK")
 
 # ── 2. Check backbone_fpn[-1] shape ──────────────────────────────────────────
