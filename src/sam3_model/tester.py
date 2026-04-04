@@ -8,20 +8,14 @@ Confirms:
 """
 
 import torch
-from src.sam3_model.sam3_builder     import build_sam3_image_model
-from sam3.train.data.collator import BatchedDatapoint
+from sam3_builder import build_sam3_image_model
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 # ── 1. Build model ────────────────────────────────────────────────────────────
 print("\n[1] Building model...")
-model = build_sam3_image_model(
-    device=device,
-    eval_mode=True,
-    load_from_HF=True,
-    enable_segmentation=True,
-)
+model = build_sam3_image_model()
 model.eval()
 print("    OK")
 
@@ -77,7 +71,7 @@ geo_prompt = Prompt()
 with torch.no_grad():
     out = model.forward_grounding(
         backbone_out=backbone_out,
-        find_input=FakeInput(),
+        find_input=find_input,
         find_target=None,
         geometric_prompt=geo_prompt,
     )
