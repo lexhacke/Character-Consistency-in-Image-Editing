@@ -1,0 +1,21 @@
+# PyTorch — install manually for your CUDA version:
+# https://pytorch.org/get-started/locally/
+# e.g. pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision
+
+# SAM3 core deps
+timm>=1.0.17
+numpy>=1.26,<2
+ftfy==6.1.1
+regex
+iopath>=0.1.10
+typing_extensions
+huggingface_hub
+
+# SAM3 package itself (from repo root)
+# pip install -e ../../sam3
+
+# Tester / notebook
+tqdm
+pillow
