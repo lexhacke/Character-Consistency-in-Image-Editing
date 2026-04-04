@@ -8,7 +8,7 @@ Confirms:
 """
 
 import torch
-from sam3.model_builder import build_sam3_image_model
+from src.sam3_model.sam3_builder     import build_sam3_image_model
 from sam3.train.data.collator import BatchedDatapoint
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
