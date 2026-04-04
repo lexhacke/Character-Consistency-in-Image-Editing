@@ -3,7 +3,7 @@ import pathlib
 import sam3
 from sam3 import build_sam3_image_model
 
-def build_sam3_image_model():
+def build_sam3_image_model_fixed():
     try:
         model = build_sam3_image_model()
     except FileNotFoundError:
