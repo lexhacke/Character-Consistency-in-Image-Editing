@@ -8,14 +8,14 @@ Confirms:
 """
 
 import torch
-from sam3_builder import build_sam3_image_model
+from sam3_builder import build_sam3_image_model_fixed
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 # ── 1. Build model ────────────────────────────────────────────────────────────
 print("\n[1] Building model...")
-model = build_sam3_image_model()
+model = build_sam3_image_model_fixed()
 model.eval()
 print("    OK")
 
