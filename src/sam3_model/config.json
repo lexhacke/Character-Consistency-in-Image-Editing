@@ -1,0 +1,12 @@
+{
+  "max_epochs": 20,
+  "batch_size": 2,
+  "lr": 1e-5,
+  "min_sim": 0.94,
+  "num_workers": 4,
+  "save_freq": 5,
+  "overfit_batches": 0,
+  "freeze_backbone": true,
+  "resolution": 1008,
+  "data_subdir": "clean_data"
+}
