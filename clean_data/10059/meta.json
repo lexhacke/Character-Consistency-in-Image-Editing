@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the spherical disco ball hanging from the ceiling with a vintage, multi-tiered crystal chandelier that emanates a warm, soft glow, ensuring its scale is appropriate for the venue and its light seamlessly integrates with the existing stage and ambient lighting, reflecting subtly on the ceiling.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "dark brown metallic spherical disco ball"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "bright crystal glass multi-tiered chandelier with warm glow"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9902938008308411
+}

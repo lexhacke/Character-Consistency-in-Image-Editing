@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the green Kodak 120 film roll with a small, vintage, silver-colored photographic light meter, ensuring its metallic surface reflects the ambient light similarly to the camera's lenses, and it casts a soft, natural shadow on the wooden table, maintaining the original image's warm lighting and depth of field.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "green cylindrical Kodak 120 film roll"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "small vintage silver-colored rectangular photographic light meter"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9965681433677673
+}

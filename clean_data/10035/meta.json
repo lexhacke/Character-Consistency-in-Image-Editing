@@ -1,0 +1,16 @@
+{
+    "prompt": "Replace the existing blurred background with a detailed yet softly out-of-focus nighttime forest scene, featuring subtle distant glowing embers or tents, ensuring the ambient light and color temperature of the new background are consistent with the warm, upward glow illuminating the subjects and maintaining the overall evening atmosphere.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "man in a long-sleeved brown sweater holding a translucent cup with reddish liquid",
+            "man in a grey hooded sweatshirt standing on the right"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.8849576711654663
+}

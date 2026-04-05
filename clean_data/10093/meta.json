@@ -1,0 +1,15 @@
+{
+    "prompt": "Add a clear, standard-sized glass of water, approximately two-thirds full, with subtle light reflections and a hint of condensation, positioned naturally on the top surface of the wooden podium to the speaker's right, ensuring its lighting and cast shadows are consistent with the surrounding environment and it does not obscure the speaker's face or the banner's text.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "clear standard-sized glass of water, approximately two-thirds full, with subtle light reflections and a hint of condensation"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9915265440940857
+}

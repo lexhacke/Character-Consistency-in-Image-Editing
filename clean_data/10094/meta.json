@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the color of the prominent light grey/white rock face in the background to a warm, earthy sandstone beige, ensuring its rugged texture and natural lighting are preserved for a realistic appearance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "the prominent light grey/white rock face in the background"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "the prominent warm, earthy sandstone beige rock face in the background"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9802651405334473
+}

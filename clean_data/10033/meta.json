@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the current plain background with a softly blurred, natural outdoor scene featuring dappled sunlight filtering through green and autumnal foliage, ensuring the new background maintains the original image's lighting and keeps the focus sharply on the birds and feeder.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "white mesh bird feeder",
+            "small bird with yellow and black striped feathers hanging on the feeder",
+            "another small bird with yellow and black striped feathers hanging on the feeder"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9379079341888428
+}

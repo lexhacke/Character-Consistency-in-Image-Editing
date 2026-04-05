@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the red facade of the Kresge's 5 and 10 store to a deep forest green, preserving the current architectural details, shadows, and the warm, slightly faded vintage postcard aesthetic, ensuring the white trim and window details remain crisp and well-defined against the new color.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "red facade of the Kresge's 5 and 10 store building"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "deep forest green facade of the Kresge's 5 and 10 store building"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9899759292602539
+}

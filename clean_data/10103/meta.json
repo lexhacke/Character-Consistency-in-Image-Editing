@@ -1,0 +1,15 @@
+{
+    "prompt": "Remove the white water bottle held by the person on the left, seamlessly reconstructing the black and purple cycling jersey and shorts behind it with matching fabric texture, shading, and garment folds to maintain a natural appearance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "white water bottle"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9973276853561401
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the color of the large brown dinosaur model to a vibrant, deep blue with a slightly glossy, scaly texture, ensuring the new coloration seamlessly integrates with the existing scene's lighting and shadows for a natural appearance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "large brown dinosaur model"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "large vibrant deep blue glossy scaly dinosaur model"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9866322875022888
+}

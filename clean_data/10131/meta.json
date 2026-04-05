@@ -1,0 +1,15 @@
+{
+    "prompt": "Introduce a dark grey luxury sedan, subtly reflecting the ambient twilight lighting, parked neatly on the right side of the driveway just before the brick pillar, facing towards the building.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "dark grey luxury sedan, subtly reflecting the ambient twilight lighting"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9808483719825745
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the bright yellow plastic barn to a classic weathered red barn, giving it a painted wooden texture with subtle signs of age, while maintaining the original scene's lighting and shadow consistency.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "bright yellow plastic barn"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "classic weathered red barn with painted wooden texture"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.967981219291687
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the distant city skyline and its reflections with a majestic, snow-capped mountain range under a dramatic, overcast sky, ensuring the new background seamlessly blends with the existing water and foreground elements, maintaining the original image's moody lighting and textural realism.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "rusty metal boat bollard",
+            "weathered wooden dock pier",
+            "calm water in the foreground"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9574070572853088
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the red ladybug on the yellow craft sunflower petal with a small, intricately detailed monarch butterfly, ensuring its colors, texture, and soft lighting are seamlessly integrated to appear as a natural embellishment on the craft flower.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "red ladybug with black spots"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "monarch butterfly with orange and black wings and white spots"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9912789463996887
+}

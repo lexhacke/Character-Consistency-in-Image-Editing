@@ -1,0 +1,15 @@
+{
+    "prompt": "Replace the existing plain wall and electrical fixtures with a soft-focus, modern cafe or co-working lounge background, featuring warm, ambient lighting, natural wood accents, and subtle blurred elements like distant tables or indoor plants, ensuring seamless integration with the foreground subjects and consistent light direction and color temperature.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "the four men sitting at the blue table with the yellow can and small brown box"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9974592924118042
+}

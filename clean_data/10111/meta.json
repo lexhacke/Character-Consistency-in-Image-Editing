@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the yellow forestry machine with a weathered, dark green vintage 4x4 off-road vehicle, ensuring its lighting and shadows seamlessly integrate with the overcast forest environment, its tires realistically interact with the grassy terrain, and it maintains a similar scale and perspective within the scene.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "yellow forestry machine"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "weathered dark green vintage 4x4 off-road vehicle"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9988531470298767
+}

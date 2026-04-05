@@ -1,0 +1,15 @@
+{
+    "prompt": "Integrate a single, clean pair of bright red child's sneakers, neatly tied, onto the top-center of the existing shoe pile, ensuring they are realistically lit to match the ambient overcast conditions and cast subtle, natural-looking shadows onto the surrounding footwear, maintaining the overall texture and perspective of the scene.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "single clean pair of bright red child's sneakers, neatly tied"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9725890159606934
+}

@@ -1,0 +1,15 @@
+{
+    "prompt": "Add a white ceramic coffee mug, filled with a dark beverage, to the blue-covered table in the foreground on the right side, positioned naturally among the existing water bottles and papers, ensuring its lighting and subtle shadow are consistent with the room's warm, artificial illumination and the table's surface texture.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "white ceramic coffee mug filled with a dark beverage"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9986684918403625
+}

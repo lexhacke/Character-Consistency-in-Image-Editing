@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the wallaby in the foreground with a capybara, ensuring the capybara is positioned similarly, facing right, and perfectly integrated into the scene with matching natural lighting, realistic fur texture, and consistent shadows, while maintaining the original background of trees and dirt.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "wallaby with gray and brown fur"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "brown capybara with short fur"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9994850754737854
+}

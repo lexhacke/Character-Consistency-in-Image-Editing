@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the dark, weathered thatched roof into a vibrant, golden-blonde straw thatch, appearing freshly laid and meticulously layered, ensuring the new material reflects the bright sunlight with a warm glow and casts subtle, natural shadows, while preserving the original roof's robust texture and overall shape.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "dark brown thatched roof"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "golden-blonde thatched roof"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9958024024963379
+}

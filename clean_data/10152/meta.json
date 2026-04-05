@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the person in the foreground with a majestic, standing camel, ensuring realistic shadows are cast on the sandy ground, and the camel's texture and color are consistent with the warm, dusty environment under the bright sky.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "person in the foreground"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "majestic standing camel"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9920793771743774
+}

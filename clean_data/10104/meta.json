@@ -1,0 +1,15 @@
+{
+    "prompt": "Add a dark, metallic thermos bottle with subtle reflections of the ambient light onto the snow-dusted ground next to the person's left foot, ensuring its texture and lighting seamlessly blend with the rustic, dimly lit environment.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "dark metallic thermos bottle"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9587622284889221
+}

@@ -1,0 +1,15 @@
+{
+    "prompt": "Integrate a solitary farmer, dressed in earthy-toned clothing, standing in one of the flooded rice paddies in the mid-ground, with subtle reflections visible in the water, and a slightly bent posture as if tending to the soil, ensuring the lighting matches the soft, overcast sky and the overall composition feels natural and undisturbed.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "a solitary farmer dressed in earthy-toned clothing, standing in one of the flooded rice paddies, with subtle reflections visible in the water, and a slightly bent posture as if tending to the soil"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9919743537902832
+}

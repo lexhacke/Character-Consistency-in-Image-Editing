@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the large plant pot from its current dark gray metallic finish to a natural, textured light brown ceramic, ensuring realistic shadows and highlights integrate seamlessly with the room's lighting.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "dark gray metallic plant pot"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "natural textured light brown ceramic plant pot"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9722590446472168
+}

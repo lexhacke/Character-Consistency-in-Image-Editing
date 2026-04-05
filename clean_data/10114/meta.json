@@ -1,0 +1,19 @@
+{
+    "prompt": "Replace the existing brown chaise lounge and the adjacent angular brown cabinet with a minimalist, light grey upholstered bench featuring slender black metal legs, and a dark walnut floating shelf mounted on the light blue wall above where the cabinet was, ensuring the new elements are seamlessly integrated with the room's current lighting, perspective, and overall aesthetic.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "brown chaise lounge with light trim",
+            "angular brown cabinet with drawers"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "minimalist light grey upholstered bench with slender black metal legs",
+            "dark walnut floating shelf on the light blue wall"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9939308166503906
+}

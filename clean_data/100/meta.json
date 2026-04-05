@@ -1,0 +1,15 @@
+{
+    "prompt": "Add a small, vibrant yellow toy duck to the light wooden table, placing it between the binder clip structure and the blue playdough creature, ensuring it is in sharp focus, realistically lit by the soft natural light from the left, and casts a subtle shadow consistent with the scene.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "small vibrant yellow toy duck"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9868044853210449
+}

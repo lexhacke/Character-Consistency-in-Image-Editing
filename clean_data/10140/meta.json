@@ -1,0 +1,15 @@
+{
+    "prompt": "Remove the person in the black jacket and red scarf from the bottom right of the image, seamlessly reconstructing the granite steps, the metal handrail, and the lower portion of the building facade behind them, ensuring the shadows, reflections, and stone textures match the surrounding architecture and lighting conditions.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "person in a black jacket and red scarf at the bottom right"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9849603176116943
+}

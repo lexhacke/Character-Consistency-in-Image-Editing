@@ -1,0 +1,15 @@
+{
+    "prompt": "Change the dark green color of the Lego crocodile to a vibrant, glossy red, ensuring that the plastic texture, reflections, and existing lighting conditions are realistically preserved across all surfaces, including the studs and the inside of the mouth, while maintaining the background.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "red plastic Lego crocodile toy"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9918856620788574
+}

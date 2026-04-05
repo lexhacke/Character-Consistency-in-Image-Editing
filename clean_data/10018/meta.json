@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the large 'Once' musical poster on the wall with a vintage-style movie poster, featuring classic Hollywood actors and dramatic typography, ensuring the new poster has a slightly weathered texture and its colors (e.g., sepia or muted tones) and lighting seamlessly blend with the existing wall's ambiance and the overall scene's illumination, while maintaining the original poster's exact dimensions and placement.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "large black rectangular 'Once' musical poster on the grey wall"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "large rectangular vintage-style movie poster with multiple classic Hollywood actors and dramatic text on the grey wall"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.988176167011261
+}

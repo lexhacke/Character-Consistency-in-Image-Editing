@@ -1,0 +1,15 @@
+{
+    "prompt": "Add a new object to the scene, specifically a faint, distant, silhouetted cell tower with a subtly glowing red warning light, positioned on the far left horizon, partially illuminated by the ambient glow of the lightning to blend seamlessly with the stormy night sky and foreground silhouettes.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "faint distant silhouetted cell tower with a subtly glowing red warning light"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9924940466880798
+}

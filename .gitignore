@@ -13,6 +13,5 @@ runs
 .ipynb_checkpoints
 move.py
 data_quality.ipynb
-clean_data
 data
 sam3

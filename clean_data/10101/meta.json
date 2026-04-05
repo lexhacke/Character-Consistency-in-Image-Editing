@@ -1,0 +1,15 @@
+{
+    "prompt": "Integrate a vintage-style electric guitar, such as a cherry red Gibson Les Paul, on a black stand to the left of the tall Marshall amplifier stack, ensuring it is illuminated by the stage's red and yellow lighting, casting appropriate shadows and reflections to match the existing scene's mood and depth.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "cherry red electric guitar on a black stand"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9869272708892822
+}

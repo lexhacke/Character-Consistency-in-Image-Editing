@@ -1,0 +1,17 @@
+{
+    "prompt": "Replace the cardboard box on top of the grey cabinet with a stack of three to four antique, leather-bound books, featuring rich, faded hues of deep red, forest green, and dark brown, ensuring the textures are aged and worn with subtle gold accents, and the lighting and shadows seamlessly integrate with the existing soft, diffused light in the scene.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "brown cardboard box with black markings"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "stack of antique leather-bound books with red, green, and brown spines"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9264312982559204
+}

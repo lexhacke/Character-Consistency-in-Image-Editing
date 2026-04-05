@@ -1,0 +1,15 @@
+{
+    "prompt": "Integrate a small, vibrantly colored bird, such as a blue and orange kingfisher, perched naturally on the edge of the wooden platform of the birdhouse, ensuring its lighting matches the soft, diffused daylight of the scene and its details are sharp against the rustic wood.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "small vibrantly colored blue and orange kingfisher bird"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9607162475585938
+}

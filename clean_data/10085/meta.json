@@ -1,0 +1,17 @@
+{
+    "prompt": "Adjust the front rusty hot rod's stance by lowering its suspension to create a more aggressive, 'slammed' look, and slightly increase the front wheel's diameter while maintaining its whitewall detail, ensuring all reflections, shadows, and the overall composition integrate seamlessly with the new altered shape and size.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "the front rusty hot rod's front wheel with its original diameter and the lower part of the hot rod body at its original suspension height"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "the front rusty hot rod's enlarged front wheel and the lower part of the hot rod body with a lowered suspension"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9990835785865784
+}

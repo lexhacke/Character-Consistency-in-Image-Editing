@@ -1,0 +1,15 @@
+{
+    "prompt": "Replace the current blurry indoor background with a vibrant, softly lit public park scene, featuring lush green trees, distant blooming flowers, and dappled sunlight filtering through leaves, ensuring the new background maintains a natural depth of field and warm, inviting color palette consistent with the foreground subjects.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "man wearing a dark red hoodie carrying a blonde baby in a grey and black baby carrier"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9890363216400146
+}

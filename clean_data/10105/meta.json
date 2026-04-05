@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the color of the yellow house on the right to a deep, rustic red, ensuring the new color blends naturally with the autumn landscape and maintains realistic lighting and shadows on its facade and roof tiles.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            "yellow house on the right"
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            "red house on the right"
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9889450073242188
+}
