@@ -11,7 +11,13 @@
       "Bash(modal run:*)",
       "Bash(where modal:*)",
       "Bash(where.exe modal)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(uvx --version)",
+      "Bash(claude mcp:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "wandb"
+  ]
 }

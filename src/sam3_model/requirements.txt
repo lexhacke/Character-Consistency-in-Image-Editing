@@ -1,19 +1,36 @@
-# PyTorch — pre-installed in Colab, skip if already present
-# torch
-# torchvision
+# PyTorch
+torch
+torchvision
 
-# SAM3 core deps
+# SAM3 core deps (from pyproject.toml)
 timm>=1.0.17
-numpy>=2.0
+numpy>=1.26,<2
 ftfy==6.1.1
 regex
 iopath>=0.1.10
 typing_extensions
 huggingface_hub
 
-# SAM3 — install from GitHub
-git+https://github.com/facebookresearch/sam3.git
+# SAM3
+sam3
+triton
+psutil
 
-# Tester / notebook
+# SAM3 [train] extras (from pyproject.toml)
+hydra-core
+submitit
+tensorboard
+zstandard
+scipy
+torchmetrics
+fvcore
+fairscale
+scikit-image
+scikit-learn
+
+# Misc
 tqdm
 pillow
+requests
+wandb
+python-dotenv

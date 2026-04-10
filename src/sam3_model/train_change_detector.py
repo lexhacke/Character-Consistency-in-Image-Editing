@@ -40,7 +40,7 @@ from sam3.model.utils.misc import copy_data_to_device
 from sam3.train.data.collator import collate_fn_api
 from sam3.train.loss.loss_fns import Boxes, IABCEMdetr, Masks, CORE_LOSS_KEY
 from sam3.train.loss.sam3_loss import Sam3LossWrapper
-from sam3.train.matcher import BinaryHungarianMatcherV2
+from sam3.train.matcher import BinaryHungarianMatcherV2, BinaryOneToManyMatcher
 
 from src.sam3_model.sam3_wrapper import SAM3ChangeDetector
 from src.sam3_model.sam3_dataset import SAM3ChangeDetectionDataset
@@ -89,18 +89,25 @@ def build_loss(device: str = "cuda") -> Sam3LossWrapper:
             gamma=2,
             stable=False,
         ),
+        o2m_matcher=BinaryOneToManyMatcher(
+            alpha=0.3,
+            threshold=0.4,
+            topk=4,
+        ),
+        o2m_weight=2.0,
+        use_o2m_matcher_on_o2m_aux=False,
         loss_fns_find=[
             Boxes(weight_dict={"loss_bbox": 5.0, "loss_giou": 2.0}),
             IABCEMdetr(
                 weak_loss=False,
-                pos_weight=10.0,
+                pos_weight=5.0,
                 alpha=0.25,
                 gamma=2,
                 use_presence=True,
-                pos_focal=True,
+                pos_focal=False,
                 pad_n_queries=200,
                 pad_scale_pos=1.0,
-                weight_dict={"loss_ce": 2.0, "presence_loss": 1.0},
+                weight_dict={"loss_ce": 20.0, "presence_loss": 20.0},
             ),
             Masks(
                 weight_dict={"loss_mask": 5.0, "loss_dice": 5.0},
@@ -112,7 +119,7 @@ def build_loss(device: str = "cuda") -> Sam3LossWrapper:
             ),
         ],
         loss_fn_semantic_seg=None,
-        scale_by_find_batch_size=False,
+        scale_by_find_batch_size=True,
     ).to(device)
 
 
@@ -140,12 +147,14 @@ def train(args):
         data_root=args.data_root,
         resolution=1008,
         min_sim=args.min_sim,
+        val_fraction=args.val_fraction,
         split="train",
     )
     val_ds = SAM3ChangeDetectionDataset(
         data_root=args.data_root,
         resolution=1008,
         min_sim=args.min_sim,
+        val_fraction=args.val_fraction,
         split="val",
     )
 
@@ -224,7 +233,8 @@ def train(args):
                 # model() returns SAM3Output (list of stages, each a list of steps)
                 outputs: SAM3Output = model(batch)
                 # loss_fn takes (SAM3Output, list[BatchedFindTarget])
-                loss_dict = loss_fn(outputs, batch.find_targets)
+                targets = [model.back_convert(t) for t in batch.find_targets]
+                loss_dict = loss_fn(outputs, targets)
                 loss = loss_dict[CORE_LOSS_KEY]
 
             optimizer.zero_grad(set_to_none=True)
@@ -266,7 +276,8 @@ def _validate(model, loader, loss_fn, device):
     for batch in loader:
         batch = copy_data_to_device(batch, device)
         outputs = model(batch)
-        loss_dict = loss_fn(outputs, batch.find_targets)
+        targets = [model.back_convert(t) for t in batch.find_targets]
+        loss_dict = loss_fn(outputs, targets)
         total += loss_dict[CORE_LOSS_KEY].item()
     model.train()
     return total / max(len(loader), 1)
@@ -296,6 +307,8 @@ def parse_args():
     p.add_argument("--max_epochs",      type=int,   default=20)
     p.add_argument("--min_sim",         type=float, default=0.94,
                    help="Minimum DINO similarity score to include a training sample")
+    p.add_argument("--val_fraction",    type=float, default=0.5,
+                   help="Fraction of valid samples held out for validation")
     p.add_argument("--num_workers",     type=int,   default=4)
     p.add_argument("--save_freq",       type=int,   default=5,
                    help="Save a checkpoint every N epochs")

@@ -10,6 +10,7 @@ Architecture insight:
 Batching convention (must match SAM3ChangeDetectionDataset):
   Each Datapoint has two images: images[0] = edited, images[1] = original.
   After collation, img_batch is [edited_0, orig_0, edited_1, orig_1, ...].
+  Input shape is gonna be [2*B, 3, H, W], and find_input.img_ids = [0, 2, 4, ...] (edited indices).
   find_input.img_ids = [0, 2, 4, ...] (edited indices).
   find_input.img_ids + 1 = [1, 3, 5, ...] (original indices).
 
@@ -185,6 +186,12 @@ class SAM3ChangeDetector(Sam3Image):
             find_target=find_target,
             geometric_prompt=geometric_prompt.clone(),
         )
+
+        # The stock Sam3Image only computes matcher indices while training.
+        # Our validation loop still uses Sam3LossWrapper, which expects those
+        # indices whenever a target is present.
+        if find_target is not None and "indices" not in out:
+            self._compute_matching(out, self.back_convert(find_target))
 
         previous_stages_out = SAM3Output(
             iter_mode=SAM3Output.IterMode.LAST_STEP_PER_STAGE

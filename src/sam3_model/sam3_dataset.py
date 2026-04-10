@@ -3,15 +3,26 @@ SAM3ChangeDetectionDataset — bridges clean_data/ directory structure to SAM3's
 
 Directory layout expected (from the data collection pipeline):
     clean_data/{i}/
-        base.jpeg       — original image when meta["base"] == "original", edited otherwise
-        other.jpeg      — the counterpart
-        mask.png        — binary ground-truth change mask
-        meta.json       — {"base": "original"|"edited", "similarity_score": float, ...}
+        base.jpeg              — original image when meta["base"] == "original", edited otherwise
+        other.jpeg             — the counterpart
+        subtraction_mask.png   — mask of regions removed from original (may be empty)
+        union_mask.png         — mask of regions added in the edit (may be empty)
+        meta.json              — {"base", "subtraction": {"success": [...]}, "union": {"success": [...]}, ...}
+
+    Which masks are valid is determined by meta.json:
+        len(meta["subtraction"]["success"]) > 0  →  subtraction_mask.png is a real mask
+        len(meta["union"]["success"]) > 0         →  union_mask.png is a real mask
+
+    This yields 0, 1, or 2 Object entries per sample. SAM3's Hungarian matcher
+    and DETR loss handle all three cases natively:
+        0 objects  →  presence_logit trains to 0, per-query losses zeroed
+        1 object   →  1 query matched, 199 unmatched
+        2 objects  →  2 queries matched, 198 unmatched
 
 Datapoint structure produced:
-    images[0]  edited image tensor  [3, R, R],  objects=[Object(bbox, segment, ...)]
+    images[0]  edited image tensor  [3, R, R],  objects=[Object(...), ...]  (0-2 objects)
     images[1]  original image tensor [3, R, R], objects=[]
-    find_queries[0]  image_id=0, object_ids_output=[0]
+    find_queries[0]  image_id=0, object_ids_output=[0], [0,1], or []
 
 Batching convention (must match SAM3ChangeDetector._encode_prompt):
     After collation img_batch = [edited_0, orig_0, edited_1, orig_1, ...].
@@ -77,14 +88,26 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         )
 
         valid: List[Path] = []
+        skipped_no_masks = 0
         for d in all_dirs:
             meta_path = d / "meta.json"
             if not (meta_path.exists() and (d / "base.jpeg").exists()
-                    and (d / "other.jpeg").exists() and (d / "mask.png").exists()):
+                    and (d / "other.jpeg").exists()):
                 continue
             with open(meta_path) as f:
                 meta = json.load(f)
             if meta.get("similarity_score", 1.0) < min_sim:
+                continue
+            # Determine which masks are valid from meta.json
+            has_sub = len(meta.get("subtraction", {}).get("success", [])) > 0
+            has_union = len(meta.get("union", {}).get("success", [])) > 0
+            if not has_sub and not has_union:
+                skipped_no_masks += 1
+                continue
+            # Verify the mask files actually exist
+            if has_sub and not (d / "subtraction_mask.png").exists():
+                continue
+            if has_union and not (d / "union_mask.png").exists():
                 continue
             valid.append(d)
 
@@ -98,6 +121,9 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         else:
             self.samples = [valid[i] for i in indices[n_val:]]
 
+        if skipped_no_masks:
+            print(f"[SAM3ChangeDetectionDataset] Skipped {skipped_no_masks} samples "
+                  f"with no valid masks (both subtraction and union empty)")
         print(f"[SAM3ChangeDetectionDataset] {split}: {len(self.samples)} samples "
               f"(from {len(valid)} valid, min_sim={min_sim})")
 
@@ -113,7 +139,6 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
 
         base_pil = PILImage.open(sample_dir / "base.jpeg").convert("RGB")
         other_pil = PILImage.open(sample_dir / "other.jpeg").convert("RGB")
-        mask_pil = PILImage.open(sample_dir / "mask.png").convert("L")
 
         # Determine which image is the original (unedited) vs edited
         if meta["base"] == "original":
@@ -125,14 +150,43 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         edited_tensor = self._img_transform(edited_pil)    # [3, R, R]
         original_tensor = self._img_transform(original_pil)  # [3, R, R]
 
-        # Preprocess mask to [R, R] binary bool
-        mask_tensor = self._preprocess_mask(mask_pil)  # [R, R] bool
+        # Build object list from whichever masks are valid
+        has_sub = len(meta.get("subtraction", {}).get("success", [])) > 0
+        has_union = len(meta.get("union", {}).get("success", [])) > 0
 
-        # Compute bounding box in normalised CxCyWH (what the model expects after
-        # NormalizeAPI; we bypass that transform, so we provide it directly)
-        bbox = self._mask_to_bbox_cxcywh(mask_tensor)  # [4]
+        objects = []
+        object_ids = []
+        obj_id = 0
 
-        area = float(mask_tensor.sum().item())
+        if has_sub:
+            sub_pil = PILImage.open(sample_dir / "subtraction_mask.png").convert("L")
+            sub_mask = self._preprocess_mask(sub_pil)
+            sub_bbox = self._mask_to_bbox_cxcywh(sub_mask)
+            objects.append(Object(
+                bbox=sub_bbox,
+                area=float(sub_mask.sum().item()),
+                object_id=obj_id,
+                frame_index=0,
+                segment=sub_mask,
+                is_crowd=False,
+            ))
+            object_ids.append(obj_id)
+            obj_id += 1
+
+        if has_union:
+            union_pil = PILImage.open(sample_dir / "union_mask.png").convert("L")
+            union_mask = self._preprocess_mask(union_pil)
+            union_bbox = self._mask_to_bbox_cxcywh(union_mask)
+            objects.append(Object(
+                bbox=union_bbox,
+                area=float(union_mask.sum().item()),
+                object_id=obj_id,
+                frame_index=0,
+                segment=union_mask,
+                is_crowd=False,
+            ))
+            object_ids.append(obj_id)
+            obj_id += 1
 
         original_h, original_w = edited_pil.size[1], edited_pil.size[0]
 
@@ -140,16 +194,7 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
             images=[
                 Image(
                     data=edited_tensor,
-                    objects=[
-                        Object(
-                            bbox=bbox,
-                            area=area,
-                            object_id=0,
-                            frame_index=0,
-                            segment=mask_tensor,
-                            is_crowd=False,
-                        )
-                    ],
+                    objects=objects,
                     size=(self.resolution, self.resolution),
                 ),
                 Image(
@@ -160,9 +205,9 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
             ],
             find_queries=[
                 FindQueryLoaded(
-                    query_text="",          # unused — wrapper uses image tokens
-                    image_id=0,             # edited image is image 0
-                    object_ids_output=[0],  # the changed region
+                    query_text=meta.get("prompt", ""),
+                    image_id=0,
+                    object_ids_output=object_ids,
                     is_exhaustive=True,
                     query_processing_order=0,
                     inference_metadata=InferenceMetadata(

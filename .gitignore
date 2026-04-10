@@ -15,3 +15,6 @@ move.py
 data_quality.ipynb
 data
 sam3
+.vscode
+.venv
+.mcp.json
