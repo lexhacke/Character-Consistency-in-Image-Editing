@@ -131,7 +131,8 @@ def save_to(dataset, path, frequency_table, commit_fn=None, precomputed=None):
         sim_score = float(np.dot(v, w_vec))
 
         # Gemini validation: compare composite vs edited image
-        edited_pil = PIL.Image.fromarray((edited * 255).astype(np.uint8)) if not isinstance(edited, PIL.Image.Image) else edited
+        edited_np = edited.cpu().numpy() if isinstance(edited, torch.Tensor) else np.array(edited)
+        edited_pil = PIL.Image.fromarray((edited_np * 255).astype(np.uint8))
         passed, reason = compositor.validate_composite(composite_pil, edited_pil, prompt)
 
         meta = {
