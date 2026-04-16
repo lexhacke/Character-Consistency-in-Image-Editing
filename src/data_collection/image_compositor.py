@@ -51,12 +51,16 @@ class ImageCompositor:
         self.validation_schema = types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "keep": types.Schema(
+                "pass": types.Schema(
                     type=types.Type.BOOLEAN,
-                    description="True if the mask correctly captures the described object, False otherwise."
+                    description="True if the composite faithfully reproduces the edit, False otherwise."
+                ),
+                "reason": types.Schema(
+                    type=types.Type.STRING,
+                    description="If pass is False, a detailed explanation of what went wrong (ghosting, misalignment, floating artifacts, wrong object segmented, etc.)."
                 ),
             },
-            required=["keep"]
+            required=["pass", "reason"]
         )
 
     def get_segmaps(self, edited_img, original_img, composite_json):
@@ -149,32 +153,34 @@ class ImageCompositor:
         img.save(buffer, format='JPEG')
         return buffer.getvalue()
 
-    def validate_mask(self, image, union_mask, object_description):
+    def validate_composite(self, composite_pil, edited_pil, prompt):
         """
-        Ask Gemini whether the union mask correctly captures the described object.
-        image: PIL Image the mask was extracted from.
-        union_mask: np.ndarray [H, W] bool — union of all SAM3 masks for this object.
-        object_description: str — the text prompt used for segmentation.
-        Returns True (keep) or False (discard).
+        Ask Gemini whether the composite faithfully reproduces the edit.
+        composite_pil: PIL Image — the stitched composite.
+        edited_pil: PIL Image — the target edited image.
+        prompt: str — the original edit instruction.
+        Returns (pass: bool, reason: str).
         """
-        # Create overlay: original image with red mask overlay
-        img_arr = np.array(image).copy()
-        overlay = img_arr.copy()
-        overlay[union_mask > 0] = [255, 0, 0]
-        blended = (0.6 * img_arr + 0.4 * overlay).astype(np.uint8)
-        overlay_pil = PILImage.fromarray(blended)
+        composite_bytes = io.BytesIO()
+        composite_pil.save(composite_bytes, format='JPEG')
+        composite_bytes = composite_bytes.getvalue()
 
-        overlay_bytes = io.BytesIO()
-        overlay_pil.save(overlay_bytes, format='JPEG')
-        overlay_bytes = overlay_bytes.getvalue()
+        edited_bytes = io.BytesIO()
+        edited_pil.save(edited_bytes, format='JPEG')
+        edited_bytes = edited_bytes.getvalue()
 
         response = self.gemini_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
-                f'Does the red highlighted region correctly capture "{object_description}"? '
-                f'Answer keep=true if the mask is a reasonable segmentation of the described object. '
-                f'Answer keep=false if the mask is clearly wrong, captures the wrong object, or is empty.',
-                types.Part.from_bytes(data=overlay_bytes, mime_type='image/jpeg'),
+                f'The edit instruction was: "{prompt}"\n\n'
+                f'Image 1 is the composite (our attempt to reproduce the edit via segmentation and stitching). '
+                f'Image 2 is the target edited image.\n\n'
+                f'Does the composite faithfully reproduce the edit shown in the target? '
+                f'Look for: ghosting (duplicate objects), floating artifacts, misaligned shadows, '
+                f'wrong objects segmented, or missing edits. '
+                f'Minor autoencoder artifacts are acceptable.',
+                types.Part.from_bytes(data=composite_bytes, mime_type='image/jpeg'),
+                types.Part.from_bytes(data=edited_bytes, mime_type='image/jpeg'),
             ],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -182,13 +188,14 @@ class ImageCompositor:
             )
         )
         if response.text is None:
-            print(f"Gemini validation returned None for: {object_description}")
-            return True  # Default to keep if validation fails
+            print(f"Gemini validation returned None for: {prompt[:80]}")
+            return True, "validation call failed, defaulting to pass"
         result = json.loads(response.text)
-        keep = result.get("keep", True)
-        if not keep:
-            print(f"Gemini rejected mask for: {object_description}")
-        return keep
+        passed = result.get("pass", True)
+        reason = result.get("reason", "")
+        if not passed:
+            print(f"Gemini rejected composite: {reason}")
+        return passed, reason
 
     def _set_image(self, img):
         return self.processor.set_image(img)
