@@ -7,7 +7,7 @@ from blending import expand_mask, blend
 
 load_dotenv()
 
-assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file"
+assert os.environ.get('SAVE_PATH') is not None, "Please set the SAVE_PATH in the .env file, if its there, you likely need to  cd into src"
 
 def save_to(dataset, path, frequency_table, commit_fn=None, precomputed=None):
     compositor = ImageCompositor()
@@ -64,41 +64,93 @@ def save_to(dataset, path, frequency_table, commit_fn=None, precomputed=None):
 
         # Simple bucketing "fail" as any instance where SAM3 couldn't segment an object queried by the VLM
         bucket = "fail/" if len(segmaps['failed']['subtraction']) > 0 or len(segmaps['failed']['union']) > 0 else "success/"
-        os.makedirs(path+f"/data_sample/"+bucket+f"{i}", exist_ok=True)
-        PIL.Image.fromarray((base * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/base.jpeg")
-        PIL.Image.fromarray((other * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/other.jpeg")
+        sample_dir = path + f"/data_sample/" + bucket + f"{i}"
+        os.makedirs(sample_dir, exist_ok=True)
+        PIL.Image.fromarray((base * 255).astype(np.uint8)).save(sample_dir + "/base.jpeg")
+        PIL.Image.fromarray((other * 255).astype(np.uint8)).save(sample_dir + "/other.jpeg")
+
+        # Images for Gemini validation (need PIL)
+        base_pil = PIL.Image.fromarray((base * 255).astype(np.uint8))
+        other_pil = PIL.Image.fromarray((other * 255).astype(np.uint8))
+
+        h, w = original.shape[:2]
+
+        # Process subtraction masks: save individual masks, union for composite, validate
+        sub_meta = {'success': [], 'failed': segmaps['failed']['subtraction']}
+        sub_mask = np.zeros((h, w), dtype=bool)
+        sub_mask_idx = 0
+        for masks_list, obj_prompt in segmaps['segmaps']['subtraction']:
+            # Union all masks from SAM3 for this object
+            obj_union = np.zeros((h, w), dtype=bool)
+            obj_mask_files = []
+            for mask_tensor in masks_list:
+                m = mask_tensor[0].cpu().numpy() if mask_tensor.ndim == 3 else mask_tensor.cpu().numpy()
+                assert m.ndim == 2, f"Expected H, W segmap got {m.shape}"
+                # Save individual mask
+                mask_filename = f"sub_{sub_mask_idx}.png"
+                PIL.Image.fromarray((m * 255).astype(np.uint8)).save(sample_dir + "/" + mask_filename)
+                obj_mask_files.append(mask_filename)
+                obj_union = np.logical_or(obj_union, m)
+                sub_mask_idx += 1
+
+            # Gemini validation on union of this object's masks
+            if compositor.validate_mask(base_pil, obj_union, obj_prompt):
+                sub_meta['success'].append({
+                    'prompt': obj_prompt,
+                    'masks': obj_mask_files
+                })
+                sub_mask = np.logical_or(sub_mask, obj_union)
+            else:
+                sub_meta['failed'].append(obj_prompt)
+
+        # Process union masks: same pattern
+        union_meta = {'success': [], 'failed': segmaps['failed']['union']}
+        union_mask = np.zeros((h, w), dtype=bool)
+        union_mask_idx = 0
+        for masks_list, obj_prompt in segmaps['segmaps']['union']:
+            obj_union = np.zeros((h, w), dtype=bool)
+            obj_mask_files = []
+            for mask_tensor in masks_list:
+                m = mask_tensor[0].cpu().numpy() if mask_tensor.ndim == 3 else mask_tensor.cpu().numpy()
+                assert m.ndim == 2, f"Expected H, W segmap got {m.shape}"
+                mask_filename = f"union_{union_mask_idx}.png"
+                PIL.Image.fromarray((m * 255).astype(np.uint8)).save(sample_dir + "/" + mask_filename)
+                obj_mask_files.append(mask_filename)
+                obj_union = np.logical_or(obj_union, m)
+                union_mask_idx += 1
+
+            if compositor.validate_mask(other_pil, obj_union, obj_prompt):
+                union_meta['success'].append({
+                    'prompt': obj_prompt,
+                    'masks': obj_mask_files
+                })
+                union_mask = np.logical_or(union_mask, obj_union)
+            else:
+                union_meta['failed'].append(obj_prompt)
+
+        # Re-bucket if Gemini rejected everything
+        if not sub_meta['success'] and not union_meta['success']:
+            # Move to fail bucket if we haven't already
+            if bucket == "success/":
+                new_dir = path + f"/data_sample/fail/{i}"
+                os.makedirs(new_dir, exist_ok=True)
+                import shutil
+                for f_name in os.listdir(sample_dir):
+                    shutil.move(sample_dir + "/" + f_name, new_dir + "/" + f_name)
+                os.rmdir(sample_dir)
+                sample_dir = new_dir
+                bucket = "fail/"
 
         meta = {
             'prompt': prompt,
-            'base': composite_json['base'], # The image used as the canvas. i.e. what we subtract from.
-            'subtraction': {
-                'success': [item[1] for item in segmaps['segmaps']['subtraction']], # Only save segmentation prompt
-                'failed': segmaps['failed']['subtraction']
-            },
-            'union': {
-                'success': [item[1] for item in segmaps['segmaps']['union']], # Only save segmentation prompt
-                'failed': segmaps['failed']['union']
-            }
+            'base': composite_json['base'],
+            'subtraction': sub_meta,
+            'union': union_meta,
         }
 
-        # Since SAM3 will output many segmentation maps for one image, we will just take the logical_or of all of them.
-        h, w = original.shape[:2]
-        sub_mask = np.zeros((h, w))
-        for segmap, obj in segmaps['segmaps']['subtraction']:
-            segmap = segmap[0]
-            segmap = segmap.cpu().numpy()
-            assert segmap.ndim == 2, f"Expected H, W segmap got {segmap.shape}"
-            sub_mask = np.logical_or(segmap, sub_mask)
-
-        union_mask = np.zeros((h, w))
-        for segmap, obj in segmaps['segmaps']['union']:
-            segmap = segmap[0]
-            segmap = segmap.cpu().numpy()
-            assert segmap.ndim == 2, f"Expected H, W segmap got {segmap.shape}"
-            union_mask = np.logical_or(segmap, union_mask)
-
-        PIL.Image.fromarray((sub_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/subtraction_mask.png")
-        PIL.Image.fromarray((union_mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/union_mask.png")
+        # Save union masks for backward compat / quick visualization
+        PIL.Image.fromarray((sub_mask * 255).astype(np.uint8)).save(sample_dir + "/subtraction_mask.png")
+        PIL.Image.fromarray((union_mask * 255).astype(np.uint8)).save(sample_dir + "/union_mask.png")
 
         mask = np.logical_or(union_mask, sub_mask)
 
@@ -111,16 +163,16 @@ def save_to(dataset, path, frequency_table, commit_fn=None, precomputed=None):
         assert (mask.ndim == base.ndim and base.ndim == other.ndim and base.ndim == 3), f"Why is this not H,W,C? {mask.shape, base.shape, base.shape}"
         composite = blend(mask, base, other, mode="laplacian")
 
-        PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/mask.png")
-        PIL.Image.fromarray((composite * 255).astype(np.uint8)).save(path+f"/data_sample/"+bucket+f"{i}/composite.jpeg")
+        PIL.Image.fromarray((mask * 255).astype(np.uint8)).save(sample_dir + "/mask.png")
+        PIL.Image.fromarray((composite * 255).astype(np.uint8)).save(sample_dir + "/composite.jpeg")
 
         v = compositor.dino_forward(PIL.Image.fromarray((composite * 255).astype(np.uint8)))
-        w = compositor.dino_forward(PIL.Image.fromarray(((base if meta['base'] == 'edited' else other) * 255).astype(np.uint8)))
+        w_vec = compositor.dino_forward(PIL.Image.fromarray(((base if meta['base'] == 'edited' else other) * 255).astype(np.uint8)))
         v = v / v.norm(dim=-1, keepdim=True)
-        w = w / w.norm(dim=-1, keepdim=True)
-        sim_score = np.dot(v,w)
+        w_vec = w_vec / w_vec.norm(dim=-1, keepdim=True)
+        sim_score = np.dot(v, w_vec)
         meta['similarity_score'] = float(sim_score)
-        with open(path+f"/data_sample/"+bucket+f"{i}/meta.json", 'w') as f:
+        with open(sample_dir + "/meta.json", 'w') as f:
             json.dump(meta, f, indent=4)
 
         if commit_fn and i % 50 == 0:

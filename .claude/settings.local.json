@@ -13,7 +13,8 @@
       "Bash(where.exe modal)",
       "Bash(findstr:*)",
       "Bash(uvx --version)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "mcp__wandb__query_wandb_entity_projects"
     ]
   },
   "enableAllProjectMcpServers": true,

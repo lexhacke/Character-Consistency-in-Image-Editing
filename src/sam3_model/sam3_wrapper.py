@@ -120,6 +120,12 @@ class SAM3ChangeDetector(Sam3Image):
         orig_feats = backbone_out["backbone_fpn"][-1][orig_img_ids]   # [B, 256, H, W]
         orig_tokens = orig_feats.flatten(2).permute(2, 0, 1)          # [H*W, B, 256]
         orig_tokens = self.orig_proj(orig_tokens)                      # [H*W, B, 256]
+        # Add 2D positional encoding so the fusion encoder knows spatial layout.
+        # The encoder doesn't pass pos enc for prompt/memory tokens (designed for
+        # text which has no spatial structure), so we bake it in here.
+        orig_pos = backbone_out["vision_pos_enc"][-1]                  # [total_imgs, 256, H, W]
+        orig_pos = orig_pos[orig_img_ids].flatten(2).permute(2, 0, 1)  # [H*W, B, 256]
+        orig_tokens = orig_tokens + orig_pos
         # mask: all False (no padding in a dense spatial grid)
         orig_mask = torch.zeros(
             orig_tokens.shape[1], orig_tokens.shape[0],

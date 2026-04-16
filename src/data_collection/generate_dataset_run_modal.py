@@ -24,6 +24,12 @@ api_secret = modal.Secret.from_dotenv(os.path.join(LOCAL_SRC, "..", ".env"))
 
 def download_models():
     """Pre-download all model weights during image build."""
+    import os
+    from huggingface_hub import login
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        login(token=hf_token)
+
     # SAM3 BPE vocab file
     import sam3, pathlib, requests
     bpe_dir = pathlib.Path(sam3.__file__).parent.parent / "assets"
@@ -53,7 +59,7 @@ image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libglib2.0-0")
     .pip_install_from_requirements(os.path.join(LOCAL_SRC, "requirements.txt"))
-    .run_function(download_models, gpu="any", secrets=[api_secret])
+    .run_function(download_models, gpu="any", secrets=[api_secret, modal.Secret.from_name("huggingface-secret")])
 )
 
 # ---------------------------------------------------------------------------
@@ -85,6 +91,10 @@ def generate_dataset(n: int = 200_000, start_index: int = 0, batch_mode: bool = 
 
     # Set SAVE_PATH before importing generate_dataset (asserts at import time)
     os.environ["SAVE_PATH"] = VOLUME_MOUNT_PATH
+
+    # Sanity check: Modal secrets must provide these before image_compositor.py asserts at import
+    assert "GOOGLE" in os.environ, "GOOGLE API key missing — check your src/.env or Modal secrets"
+    assert "MOONDREAM" in os.environ, "MOONDREAM API key missing — check your src/.env or Modal secrets"
 
     import asyncio
     import json

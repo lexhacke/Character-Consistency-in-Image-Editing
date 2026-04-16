@@ -254,6 +254,7 @@ orig_tokens:       [5184, B, 256]
 
 - Original image features come from `backbone_fpn[-1][img_ids + 1]` (odd indices in the batch).
 - A small `orig_proj: Linear(256, 256)`, identity-initialized, adapts them to the prompt space.
+- **2D positional encoding** from `vision_pos_enc[-1]` is pre-added to the original image tokens before they enter the prompt slot. This is critical because the fusion encoder never applies positional encoding to the prompt/memory side (by design — text tokens don't need spatial positions). Without this, the model would have no way to know where each original image token came from spatially during cross-attention.
 - Batching convention: `img_batch = [edited_0, orig_0, edited_1, orig_1, ...]`
   - Edited images at even indices, original images at odd indices.
 
@@ -304,37 +305,101 @@ Freeze the PE backbone entirely (~750M params). Train only:
 
 ### Things to try if the model fails
 
-Firstly, we might want to straight up concatenate the image editing prompt into the prompt encoding. SAM3 does this natively anyway as if you have an examplar prompt AND a text prompt, both encodings get concatenated together and passed through the fusion encoder as one. So we could just concatenate the PE text encoding of the original edit instruction onto the prompt encoding.
+**1. Concatenate the edit prompt text into the prompt encoding.**
+SAM3 natively supports concatenating exemplar + text prompts through the fusion encoder. We could concatenate the PE text encoding of the original edit instruction (e.g., "Replace the film roll with a light meter") onto the prompt encoding alongside the original image tokens. The meta.json `prompt` field is already passed as `query_text` in the Datapoint.
 
-If the model fails to learn meaningful change masks with the backbone fully frozen, the likely issue is that the original image's features are not well-adapted to the prompt role — they were trained as spatial descriptors, not concept descriptors.
+**2. LoRA adapters on the backbone.**
+If the model fails to learn meaningful change masks with the backbone fully frozen, the likely issue is that the original image's features are not well-adapted to the prompt role — they were trained as spatial descriptors, not concept descriptors. Solution: add LoRA adapters (~2-5M params each) to the PE backbone's attention layers for the original-image path, leaving the edited-image path unchanged.
 
-Solution: add LoRA adapters (~2-5M params each) to the PE backbone's attention layers for the original-image path, leaving the edited-image path unchanged. This avoids cloning 750M params while allowing the backbone to specialize for the reference role.
-
-Do not attempt this until Phase 1 training shows clear evidence of failure (e.g. loss plateaus above random baseline, or attention maps show no meaningful localization of changed regions).
+Do not attempt these until Phase 1 training shows clear evidence of failure (e.g. loss plateaus above random baseline, or attention maps show no meaningful localization of changed regions).
 
 ### Dataset Requirements
 
 Each training sample needs:
 
-```python
+```
+clean_data/{i}/
+    base.jpeg              — original image when meta["base"] == "original", edited otherwise
+    other.jpeg             — the counterpart
+    subtraction_mask.png   — mask of regions removed from original (may be all-black if N/A)
+    union_mask.png         — mask of regions added in the edit (may be all-black if N/A)
+    meta.json              — see below
+```
+
+`meta.json` determines which masks are valid:
+
+```json
 {
-    "image_original": PIL.Image,   # reference image
-    "image_edited":   PIL.Image,   # same scene with edits applied
-    "mask_gt":        Tensor,      # bool [H, W] — True where pixels changed
-    "presence_gt":    bool,        # True always (edited region is always present)
+    "prompt": "Replace the film roll with a light meter...",
+    "base": "original",
+    "subtraction": {
+        "success": ["green cylindrical Kodak 120 film roll"],
+        "failed": []
+    },
+    "union": {
+        "success": ["small vintage silver-colored rectangular photographic light meter"],
+        "failed": []
+    },
+    "similarity_score": 0.9965
 }
 ```
 
-The existing `src/data_collection/` pipeline produces these — see `data_sample/success/` outputs.
+- `len(subtraction.success) > 0` → subtraction mask is real (thing removed from original)
+- `len(union.success) > 0` → union mask is real (thing added in the edit)
+- Both empty → sample is skipped (no valid change to learn from)
+
+This yields three training cases:
+
+| Edit type | subtraction | union | Example |
+|---|---|---|---|
+| Addition | empty | valid | "Add a duck to the table" |
+| Removal | valid | empty | "Remove the dog" |
+| Replacement | valid | valid | "Replace the film roll with a light meter" |
+
+SAM3's Hungarian matcher and DETR loss handle all cases natively:
+- 0 objects → presence token trains to 0, per-query losses zeroed
+- 1 object → 1 of 200 queries matched, 199 unmatched
+- 2 objects → 2 of 200 queries matched, 198 unmatched
+
+The existing `src/data_collection/` pipeline produces these — see `clean_data/` outputs.
 
 ### Training Config
 
-Adapt `sam3/sam3/train/configs/odinw13/odinw_text_only_train.yaml`. Key changes:
+Training is configured via `src/sam3_model/config.json`:
 
-```yaml
-dataset:           src/sam3_model/sam3_dataset.py
-freeze_image_tower: FullFreeze
-freeze_text_tower:  True
-enable_segmentation: True
-# Lower LR: backbone is frozen, detector trains fast, risk of overfitting is real
+```json
+{
+    "max_epochs": 20,
+    "batch_size": 2,
+    "lr": 1e-5,
+    "min_sim": 0.94,
+    "val_fraction": 0.1,
+    "num_images_logged": 8,
+    "resolution": 1008,
+    "data_subdir": "clean_data"
+}
 ```
+
+Training runs on Modal via `train_modal.py`:
+
+```bash
+# Full training
+modal run src/sam3_model/train_modal.py
+
+# Overfit sanity check
+modal run src/sam3_model/train_modal.py --overfit-batches 1 --max-epochs 100
+```
+
+Upload data to Modal volume first:
+
+```bash
+modal volume put clean-data C:/path/to/clean_data /clean_data
+```
+
+### Wandb Logging
+
+Training and validation log 6 mask images per sample:
+- `sub_mask_gt` / `union_mask_gt` — ground-truth subtraction and union masks
+- `sub_mask_pred` / `union_mask_pred` — top-2 predicted masks by confidence
+
+Note: predicted masks are the top-2 by logit score, not by Hungarian assignment. They may not correspond 1:1 to sub vs union, but show whether the model learns to produce two distinct masks.
