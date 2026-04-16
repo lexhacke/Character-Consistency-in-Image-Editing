@@ -355,12 +355,14 @@ def train(
     print(f"Config: {hparams}")
 
     # ---- datasets ----
+    merge_masks = config.get("merge_masks", True)
     train_ds = SAM3ChangeDetectionDataset(
         data_root=data_root,
         resolution=config["resolution"],
         min_sim=min_sim,
         val_fraction=val_fraction,
         split="train",
+        merge_masks=merge_masks,
     )
     val_ds = SAM3ChangeDetectionDataset(
         data_root=data_root,
@@ -368,6 +370,7 @@ def train(
         min_sim=min_sim,
         val_fraction=val_fraction,
         split="val",
+        merge_masks=merge_masks,
     )
 
     if overfit_batches:

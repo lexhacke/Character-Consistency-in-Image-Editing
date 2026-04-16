@@ -10,5 +10,6 @@
   "overfit_batches": 0,
   "freeze_backbone": true,
   "resolution": 1008,
-  "data_subdir": "clean_data"
+  "data_subdir": "clean_data",
+  "merge_masks": false
 }

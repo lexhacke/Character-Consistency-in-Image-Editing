@@ -5,24 +5,27 @@ Directory layout expected (from the data collection pipeline):
     clean_data/{i}/
         base.jpeg              — original image when meta["base"] == "original", edited otherwise
         other.jpeg             — the counterpart
-        subtraction_mask.png   — mask of regions removed from original (may be empty)
-        union_mask.png         — mask of regions added in the edit (may be empty)
-        meta.json              — {"base", "subtraction": {"success": [...]}, "union": {"success": [...]}, ...}
+        sub_0.png, sub_1.png, ...       — individual SAM3 masks per subtraction object
+        union_0.png, union_1.png, ...   — individual SAM3 masks per union object
+        subtraction_mask.png   — merged OR of all subtraction masks
+        union_mask.png         — merged OR of all union masks
+        meta.json              — see below
 
-    Which masks are valid is determined by meta.json:
-        len(meta["subtraction"]["success"]) > 0  →  subtraction_mask.png is a real mask
-        len(meta["union"]["success"]) > 0         →  union_mask.png is a real mask
+    meta.json format (new):
+        "subtraction": {"success": [{"prompt": "...", "masks": ["sub_0.png", ...]}, ...]}
+        "union":       {"success": [{"prompt": "...", "masks": ["union_0.png", ...]}, ...]}
 
-    This yields 0, 1, or 2 Object entries per sample. SAM3's Hungarian matcher
-    and DETR loss handle all three cases natively:
-        0 objects  →  presence_logit trains to 0, per-query losses zeroed
-        1 object   →  1 query matched, 199 unmatched
-        2 objects  →  2 queries matched, 198 unmatched
+    Each object-prompt entry becomes a separate Object for the DETR decoder.
+    Its ground-truth mask is the OR of all individual SAM3 masks for that entry.
+    This yields N objects per sample (N = #subtraction_objects + #union_objects).
+
+    Falls back to old format (success = flat list of strings) by loading the
+    merged subtraction_mask.png / union_mask.png as single objects.
 
 Datapoint structure produced:
-    images[0]  edited image tensor  [3, R, R],  objects=[Object(...), ...]  (0-2 objects)
+    images[0]  edited image tensor  [3, R, R],  objects=[Object(...), ...]  (0-N objects)
     images[1]  original image tensor [3, R, R], objects=[]
-    find_queries[0]  image_id=0, object_ids_output=[0], [0,1], or []
+    find_queries[0]  image_id=0, object_ids_output=[0, 1, ..., N-1] or []
 
 Batching convention (must match SAM3ChangeDetector._encode_prompt):
     After collation img_batch = [edited_0, orig_0, edited_1, orig_1, ...].
@@ -34,6 +37,7 @@ import random
 from pathlib import Path
 from typing import List, Optional
 
+import numpy as np
 import torch
 import torch.utils.data
 import torchvision.transforms.v2 as T
@@ -71,9 +75,11 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         split: str = "train",
         val_fraction: float = 0.05,
         seed: int = 42,
+        merge_masks: bool = True,
     ):
         self.resolution = resolution
         self.split = split
+        self.merge_masks = merge_masks
 
         self._img_transform = T.Compose([
             T.ToImage(),
@@ -99,15 +105,10 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
             if meta.get("similarity_score", 1.0) < min_sim:
                 continue
             # Determine which masks are valid from meta.json
-            has_sub = len(meta.get("subtraction", {}).get("success", [])) > 0
-            has_union = len(meta.get("union", {}).get("success", [])) > 0
-            if not has_sub and not has_union:
+            sub_entries = meta.get("subtraction", {}).get("success", [])
+            union_entries = meta.get("union", {}).get("success", [])
+            if not sub_entries and not union_entries:
                 skipped_no_masks += 1
-                continue
-            # Verify the mask files actually exist
-            if has_sub and not (d / "subtraction_mask.png").exists():
-                continue
-            if has_union and not (d / "union_mask.png").exists():
                 continue
             valid.append(d)
 
@@ -150,43 +151,60 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         edited_tensor = self._img_transform(edited_pil)    # [3, R, R]
         original_tensor = self._img_transform(original_pil)  # [3, R, R]
 
-        # Build object list from whichever masks are valid
-        has_sub = len(meta.get("subtraction", {}).get("success", [])) > 0
-        has_union = len(meta.get("union", {}).get("success", [])) > 0
+        # Build object list from meta.json mask entries
+        sub_entries = meta.get("subtraction", {}).get("success", [])
+        union_entries = meta.get("union", {}).get("success", [])
 
         objects = []
         object_ids = []
         obj_id = 0
 
-        if has_sub:
-            sub_pil = PILImage.open(sample_dir / "subtraction_mask.png").convert("L")
-            sub_mask = self._preprocess_mask(sub_pil)
-            sub_bbox = self._mask_to_bbox_cxcywh(sub_mask)
-            objects.append(Object(
-                bbox=sub_bbox,
-                area=float(sub_mask.sum().item()),
-                object_id=obj_id,
-                frame_index=0,
-                segment=sub_mask,
-                is_crowd=False,
-            ))
-            object_ids.append(obj_id)
-            obj_id += 1
+        if self.merge_masks:
+            # Merge mode: OR all subtraction into one Object, all union into one Object (max 2)
+            sub_mask = self._load_and_merge_entries(sample_dir, sub_entries, "subtraction_mask.png")
+            if sub_mask is not None:
+                objects.append(Object(
+                    bbox=self._mask_to_bbox_cxcywh(sub_mask),
+                    area=float(sub_mask.sum().item()),
+                    object_id=obj_id, frame_index=0, segment=sub_mask, is_crowd=False,
+                ))
+                object_ids.append(obj_id)
+                obj_id += 1
 
-        if has_union:
-            union_pil = PILImage.open(sample_dir / "union_mask.png").convert("L")
-            union_mask = self._preprocess_mask(union_pil)
-            union_bbox = self._mask_to_bbox_cxcywh(union_mask)
-            objects.append(Object(
-                bbox=union_bbox,
-                area=float(union_mask.sum().item()),
-                object_id=obj_id,
-                frame_index=0,
-                segment=union_mask,
-                is_crowd=False,
-            ))
-            object_ids.append(obj_id)
-            obj_id += 1
+            union_mask = self._load_and_merge_entries(sample_dir, union_entries, "union_mask.png")
+            if union_mask is not None:
+                objects.append(Object(
+                    bbox=self._mask_to_bbox_cxcywh(union_mask),
+                    area=float(union_mask.sum().item()),
+                    object_id=obj_id, frame_index=0, segment=union_mask, is_crowd=False,
+                ))
+                object_ids.append(obj_id)
+                obj_id += 1
+        else:
+            # Per-object mode: one Object per object-prompt entry
+            for entry in sub_entries:
+                mask = self._load_object_mask(sample_dir, entry, fallback="subtraction_mask.png")
+                if mask is None:
+                    continue
+                objects.append(Object(
+                    bbox=self._mask_to_bbox_cxcywh(mask),
+                    area=float(mask.sum().item()),
+                    object_id=obj_id, frame_index=0, segment=mask, is_crowd=False,
+                ))
+                object_ids.append(obj_id)
+                obj_id += 1
+
+            for entry in union_entries:
+                mask = self._load_object_mask(sample_dir, entry, fallback="union_mask.png")
+                if mask is None:
+                    continue
+                objects.append(Object(
+                    bbox=self._mask_to_bbox_cxcywh(mask),
+                    area=float(mask.sum().item()),
+                    object_id=obj_id, frame_index=0, segment=mask, is_crowd=False,
+                ))
+                object_ids.append(obj_id)
+                obj_id += 1
 
         original_h, original_w = edited_pil.size[1], edited_pil.size[0]
 
@@ -225,6 +243,42 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _load_and_merge_entries(self, sample_dir: Path, entries: list, fallback: str) -> Optional[torch.Tensor]:
+        """OR all entries' masks into a single mask. Returns None if nothing loaded."""
+        combined = None
+        for entry in entries:
+            m = self._load_object_mask(sample_dir, entry, fallback)
+            if m is None:
+                continue
+            combined = m if combined is None else (combined | m)
+        return combined
+
+    def _load_object_mask(self, sample_dir: Path, entry, fallback: str) -> Optional[torch.Tensor]:
+        """
+        Load mask for one object-prompt entry.
+
+        New format: entry is {"prompt": str, "masks": ["sub_0.png", ...]}
+            → OR all individual mask files together.
+        Old format: entry is a plain string (prompt description)
+            → fall back to merged mask file (subtraction_mask.png / union_mask.png).
+        """
+        if isinstance(entry, dict) and "masks" in entry:
+            # New format: OR individual mask files
+            combined = None
+            for mask_file in entry["masks"]:
+                mask_path = sample_dir / mask_file
+                if not mask_path.exists():
+                    continue
+                m = self._preprocess_mask(PILImage.open(mask_path).convert("L"))
+                combined = m if combined is None else (combined | m)
+            return combined
+        else:
+            # Old format: load merged mask
+            fallback_path = sample_dir / fallback
+            if not fallback_path.exists():
+                return None
+            return self._preprocess_mask(PILImage.open(fallback_path).convert("L"))
 
     def _preprocess_mask(self, mask_pil: PILImage.Image) -> torch.Tensor:
         """Resize mask to [R, R] and binarise."""

@@ -143,12 +143,14 @@ def train(args):
     print(f"Device: {device}")
 
     # --- datasets ---
+    merge_masks = getattr(args, "merge_masks", True)
     train_ds = SAM3ChangeDetectionDataset(
         data_root=args.data_root,
         resolution=1008,
         min_sim=args.min_sim,
         val_fraction=args.val_fraction,
         split="train",
+        merge_masks=merge_masks,
     )
     val_ds = SAM3ChangeDetectionDataset(
         data_root=args.data_root,
@@ -156,6 +158,7 @@ def train(args):
         min_sim=args.min_sim,
         val_fraction=args.val_fraction,
         split="val",
+        merge_masks=merge_masks,
     )
 
     if args.overfit_batches:
