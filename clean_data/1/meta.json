@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a subtle vintage film filter to the image, characterized by slightly desaturated colors with a warm, golden-hour tint, a gentle reduction in contrast, and a fine, natural film grain evenly distributed across the entire scene, evoking a nostalgic, analog photography aesthetic without obscuring details.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is visually identical to the target image, faithfully reproducing all aspects of color, contrast, and grain. There are no ghosting artifacts, misalignments, or missing edits when comparing the composite to the target."
+    }
+}

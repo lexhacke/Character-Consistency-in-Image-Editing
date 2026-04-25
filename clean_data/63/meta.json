@@ -1,0 +1,45 @@
+{
+    "prompt": "Replace the current projected backgrounds with an immersive, high-resolution urban cityscape at night, featuring detailed graffiti-covered brick walls and industrial structures, illuminated by the existing dramatic red and blue stage lighting that casts subtle, realistic shadows from the performers onto the new environment, enhancing the gritty and energetic concert atmosphere.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "man wearing a white shirt and a cap holding a microphone on the left",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png"
+                ]
+            },
+            {
+                "prompt": "man wearing a red vest and a cap holding a microphone on the right",
+                "masks": [
+                    "union_2.png",
+                    "union_3.png"
+                ]
+            },
+            {
+                "prompt": "man wearing a red hoodie and a cap behind the DJ booth",
+                "masks": [
+                    "union_4.png",
+                    "union_5.png"
+                ]
+            },
+            {
+                "prompt": "DJ booth",
+                "masks": [
+                    "union_6.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.857747495174408,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

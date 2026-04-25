@@ -1,0 +1,31 @@
+{
+    "prompt": "Replace the current patterned ribbon with a solid, deep red velvet ribbon, maintaining realistic folds and shadows as it wraps around the straw wreath, ensuring the texture and color integrate seamlessly with the existing lighting and composition of the image.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "ribbon with red and green poinsettia flower pattern",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "solid deep red velvet ribbon",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.977972149848938,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces the target edit. The ribbon's color, texture, folds, and shadows are accurately rendered, and there are no discernible artifacts or discrepancies between the composite and the target image."
+    }
+}

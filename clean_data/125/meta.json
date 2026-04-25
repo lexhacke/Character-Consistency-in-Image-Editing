@@ -1,0 +1,17 @@
+{
+    "prompt": "Extend the canvas on all sides, seamlessly continuing the rough, muted grey stone wall, incorporating additional architectural details like a higher ceiling or more of the dark arched corridor on the right, and the weathered base of the fountain or ground below, while maintaining the current dim, consistent lighting and the overall aged, textured aesthetic.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999984502792358,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing all aspects of the edit instruction without any discrepancies such as ghosting, misalignment, or missing details."
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "prompt": "Remove the small, light-colored dog on the leash in the left foreground, ensuring the grassy ground and the wooden bench behind it are seamlessly restored with matching textures, colors, and lighting.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "small white and light brown dog on a leash",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9651374816894531,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

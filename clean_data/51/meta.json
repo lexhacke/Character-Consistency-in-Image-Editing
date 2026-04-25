@@ -1,0 +1,17 @@
+{
+    "prompt": "Shift the entire grey stone sculpture of the deity slightly to the left within the existing dark, soft-lit frame, ensuring its rough texture and intricate facial, hair, and body details remain sharply focused and naturally illuminated from the upper left, preserving the original artistic integrity and spatial relation to the background.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

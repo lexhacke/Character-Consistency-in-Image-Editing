@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a strong Van Gogh-inspired artistic style transfer, transforming the image into a vibrant, impressionistic painting with thick, swirling impasto brushstrokes, emphasizing the natural textures of the cliff face and the forms of the birds, using a palette of deep blues, ochre, and earthy reds with expressive, dynamic lighting.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target edited image, faithfully reproducing the Van Gogh-inspired artistic style transfer with no visible artifacts, ghosting, misalignment, or missing edits."
+    }
+}

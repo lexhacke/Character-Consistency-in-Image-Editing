@@ -1,0 +1,17 @@
+{
+    "prompt": "Outpaint the image by extending the canvas on all sides, seamlessly continuing the soft-focused, blurred background with its subtle gradients of grey and green, and organically extending the visible green plant stem while maintaining the shallow depth of field and the natural lighting that highlights the textured seed pod and glossy black seeds.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999980330467224,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing the outpainting edit without any visible artifacts, ghosting, or misalignment."
+    }
+}

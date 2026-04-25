@@ -1,0 +1,97 @@
+{
+    "prompt": "Replace the current indoor background with a dynamic, blurred outdoor festival or parade scene, featuring indistinct cheering crowds and colorful decorations, while maintaining the original black and white aesthetic and the natural, soft overhead lighting on the subjects.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "man on the far left wearing a dark t-shirt and smiling",
+                "masks": [
+                    "union_0.png"
+                ]
+            },
+            {
+                "prompt": "large white and grey patterned umbrella",
+                "masks": [
+                    "union_1.png",
+                    "union_2.png",
+                    "union_3.png",
+                    "union_4.png",
+                    "union_5.png",
+                    "union_6.png"
+                ]
+            },
+            {
+                "prompt": "woman in the middle wearing a dark top with earrings and smiling",
+                "masks": [
+                    "union_7.png"
+                ]
+            },
+            {
+                "prompt": "large striped multi-color patterned umbrella",
+                "masks": [
+                    "union_8.png",
+                    "union_9.png",
+                    "union_10.png",
+                    "union_11.png",
+                    "union_12.png",
+                    "union_13.png"
+                ]
+            },
+            {
+                "prompt": "man behind the woman wearing a dark t-shirt with a white 'IT' design and smiling",
+                "masks": [
+                    "union_14.png",
+                    "union_15.png",
+                    "union_16.png"
+                ]
+            },
+            {
+                "prompt": "large light-colored geometric patterned umbrella",
+                "masks": [
+                    "union_17.png",
+                    "union_18.png",
+                    "union_19.png",
+                    "union_20.png",
+                    "union_21.png",
+                    "union_22.png"
+                ]
+            },
+            {
+                "prompt": "man on the right wearing a dark t-shirt and smiling",
+                "masks": [
+                    "union_23.png",
+                    "union_24.png"
+                ]
+            },
+            {
+                "prompt": "large red and white patterned umbrella",
+                "masks": [
+                    "union_25.png",
+                    "union_26.png",
+                    "union_27.png",
+                    "union_28.png",
+                    "union_29.png",
+                    "union_30.png"
+                ]
+            },
+            {
+                "prompt": "person on the far right wearing a dark top",
+                "masks": [
+                    "union_31.png",
+                    "union_32.png",
+                    "union_33.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9736306667327881,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target edited image, faithfully reproducing all aspects of the edit, including the new background, black and white aesthetic, and lighting."
+    }
+}

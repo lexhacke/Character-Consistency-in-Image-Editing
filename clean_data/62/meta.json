@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the photo into a vibrant comic book style illustration, featuring bold, dark outlines around all figures, objects, and text, with simplified, cel-shaded colors that maintain the original palette's essence but reduce gradients, and a clean, graphic appearance for the background buildings and street details while ensuring the protest signs' Arabic text remains perfectly legible and stylized within the comic aesthetic.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999974370002747,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

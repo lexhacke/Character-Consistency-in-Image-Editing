@@ -1,0 +1,31 @@
+{
+    "prompt": "Replace the white tent structure covering the steps with a beautifully landscaped garden featuring lush green foliage, vibrant flowering plants in various colors like red, yellow, and purple, and elegant stone planters, ensuring the new elements are realistically integrated with natural lighting and shadows consistent with the bright, clear day, and maintaining the grand scale of the building's entrance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "white tent structure covering the steps",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "beautifully landscaped garden with lush green foliage, vibrant red, yellow, and purple flowering plants, and elegant stone planters",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9884931445121765,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is visually identical to the target image, faithfully reproducing all elements of the landscaped garden, including foliage, flowers, stone planters, and lighting. There are no ghosting artifacts, misalignments, or missing edits."
+    }
+}

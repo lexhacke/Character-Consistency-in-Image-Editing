@@ -1,0 +1,31 @@
+{
+    "prompt": "Replace the plush toy in the foreground with a small, realistic, fluffy white cat, ensuring its fur texture and soft lighting match the overcast conditions of the original image, and it maintains the same perspective and blurred depth of field as the original toy.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "black and white plush toy in the foreground",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "small fluffy white cat in the foreground",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9624078273773193,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces the edit. The cat in the foreground perfectly matches the target image in terms of position, perspective, lighting, fur texture, and blurred depth of field. There are no ghosting, misalignment, or missing edit artifacts."
+    }
+}

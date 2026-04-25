@@ -1,0 +1,31 @@
+{
+    "prompt": "Redraw the main flag to appear significantly larger and more dramatically unfurled, with its fabric catching more sunlight to distinctly highlight the yellow, black, and red sections and their heraldic lion patterns, while maintaining the strong backlighting and the silhouetted buildings in the background.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "the flag with red, yellow, and black sections and heraldic lion patterns",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "the larger, dramatically unfurled flag with prominent red, yellow, and black sections and distinct heraldic lion patterns",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9627343416213989,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the global lighting of the image to emulate a warm, soft golden hour, shifting the overall color temperature towards rich yellows and oranges, softening existing shadows, and introducing a gentle, directional glow that highlights the building's facade and the cobblestone street.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

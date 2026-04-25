@@ -110,6 +110,28 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
             if not sub_entries and not union_entries:
                 skipped_no_masks += 1
                 continue
+            # Verify mask files exist (new format: individual files; old format: merged files)
+            has_loadable_mask = False
+            for entry in sub_entries:
+                if isinstance(entry, dict) and "masks" in entry:
+                    if any((d / mf).exists() for mf in entry["masks"]):
+                        has_loadable_mask = True
+                        break
+                elif (d / "subtraction_mask.png").exists():
+                    has_loadable_mask = True
+                    break
+            if not has_loadable_mask:
+                for entry in union_entries:
+                    if isinstance(entry, dict) and "masks" in entry:
+                        if any((d / mf).exists() for mf in entry["masks"]):
+                            has_loadable_mask = True
+                            break
+                    elif (d / "union_mask.png").exists():
+                        has_loadable_mask = True
+                        break
+            if not has_loadable_mask:
+                skipped_no_masks += 1
+                continue
             valid.append(d)
 
         rng = random.Random(seed)
@@ -134,6 +156,9 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Datapoint:
+        return self._load_sample(idx)
+
+    def _load_sample(self, idx: int) -> Datapoint:
         sample_dir = self.samples[idx]
         with open(sample_dir / "meta.json") as f:
             meta = json.load(f)
@@ -205,6 +230,12 @@ class SAM3ChangeDetectionDataset(torch.utils.data.Dataset):
                 ))
                 object_ids.append(obj_id)
                 obj_id += 1
+
+        # Safety: if all mask loads failed, try a different sample
+        if not objects:
+            alt = (idx + 1) % len(self.samples)
+            if alt != idx:
+                return self._load_sample(alt)
 
         original_h, original_w = edited_pil.size[1], edited_pil.size[0]
 

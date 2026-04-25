@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a strong Van Gogh artistic style transfer to the entire image, transforming the colors into vibrant, swirling blues, yellows, and greens, with thick, impasto brushstrokes visible across all surfaces, especially the sky, buildings, and skin tones, while maintaining the original composition and the recognizable features of the statue and people.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, accurately reproducing the Van Gogh artistic style transfer across all elements of the image, including colors, brushstrokes, and composition."
+    }
+}

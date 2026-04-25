@@ -1,0 +1,17 @@
+{
+    "prompt": "Extend the canvas in all directions to create a wider panoramic view of the drag strip scene, seamlessly continuing the asphalt track and concrete barriers in the foreground, expanding the advertising billboards on the left and right while maintaining their style and brand integration, and filling the top with a clear blue sky and distant green foliage, all while meticulously matching the bright daylight, sharp shadows, and overall photographic realism of the original image.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999978542327881,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "N/A"
+    }
+}

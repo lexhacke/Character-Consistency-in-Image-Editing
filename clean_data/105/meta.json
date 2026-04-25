@@ -1,0 +1,17 @@
+{
+    "prompt": "Zoom in on the wall display, centering the 'THE INTERACTION DESIGN PROGRAMME' banner and the rows of framed student photos beneath it, ensuring all visible text and faces are clearly legible, while slightly cropping the man on the right and the couch on the left to create a focused composition on the program's information.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

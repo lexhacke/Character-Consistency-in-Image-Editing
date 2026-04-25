@@ -1,0 +1,24 @@
+{
+    "prompt": "Introduce a classic dark green or brown wooden pub bench with ornate cast iron legs on the pavement directly in front of the pub's main entrance, ensuring its texture and lighting blend seamlessly with the existing environment and it casts a subtle shadow consistent with the overall scene's illumination.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "classic dark green wooden pub bench with ornate cast iron legs",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9931224584579468,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

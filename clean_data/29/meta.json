@@ -1,0 +1,24 @@
+{
+    "prompt": "Remove the two horses partially visible behind the llama, seamlessly inpainting the background with natural green foliage and hints of blue sky, ensuring the newly generated area perfectly matches the existing scene's lighting, color temperature, and leafy textures to create a cohesive and realistic outdoor environment.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "brown and black llama with shaggy fur",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9972389936447144,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

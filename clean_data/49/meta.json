@@ -1,0 +1,17 @@
+{
+    "prompt": "Outpaint the image on all sides, seamlessly extending the existing muted, aged parchment background with its subtle texture and off-white/light beige tones, ensuring the diffuse lighting and the overall artistic style of the drawing are perfectly maintained within the expanded canvas.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999997019767761,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

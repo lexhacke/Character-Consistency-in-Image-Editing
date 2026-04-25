@@ -1,0 +1,30 @@
+{
+    "prompt": "Replace the wooden panel wall in the background with a sleek, dark grey concrete wall, ensuring the new surface has a subtle, industrial texture and reflects the existing warm ambient lighting and soft shadows cast by the subjects, maintaining a realistic depth of field and seamless integration with the foreground.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "woman with short dark hair wearing a black cardigan and a light-colored top",
+                "masks": [
+                    "union_0.png"
+                ]
+            },
+            {
+                "prompt": "man with receding hairline wearing a white shirt and a black and white striped sweater",
+                "masks": [
+                    "union_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9921730160713196,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

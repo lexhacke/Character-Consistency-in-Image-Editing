@@ -1,0 +1,17 @@
+{
+    "prompt": "Shift the overall color tone of the image from its current warm, golden hour appearance to a distinctly cool, twilight blue atmosphere, cooling down the warm yellow and orange hues in the palm trees and the subject's skin and sweater, while enhancing the existing blues in the sky and the stage light to create a cohesive, serene cool-toned scene.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998211860657,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

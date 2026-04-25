@@ -14,7 +14,8 @@
       "Bash(findstr:*)",
       "Bash(uvx --version)",
       "Bash(claude mcp:*)",
-      "mcp__wandb__query_wandb_entity_projects"
+      "mcp__wandb__query_wandb_entity_projects",
+      "mcp__wandb__probe_project_tool"
     ]
   },
   "enableAllProjectMcpServers": true,

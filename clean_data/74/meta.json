@@ -1,0 +1,32 @@
+{
+    "prompt": "Replace the existing small black hair ties on the baby's pigtails with delicate, small pastel pink satin bows, ensuring they are symmetrically placed, maintain the soft, warm lighting of the original image, and integrate seamlessly with the blonde hair texture, adding a touch of gentle charm without altering the pigtail shape.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "small black hair ties on the baby's pigtails",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "delicate small pastel pink satin bows on the baby's pigtails",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9651987552642822,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing the edit without any visible discrepancies such as ghosting, misalignment, or missing elements."
+    }
+}

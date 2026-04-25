@@ -1,0 +1,17 @@
+{
+    "prompt": "Crop and zoom in on the fisherman, centering him slightly to the left, while enhancing the details of his silhouette against the bright sky, preserving the subtle, calm reflections on the water's surface, and bringing out the natural textures of the gravel shoreline and nearby rocks, all while maintaining the soft, diffused morning light and overall serene atmosphere.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999991655349731,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

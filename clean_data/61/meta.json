@@ -1,0 +1,17 @@
+{
+    "prompt": "Enhance the global lighting of the black and white image to simulate a soft, warm 'golden hour' effect by increasing overall brightness, gently boosting mid-tone contrast, and introducing subtle, elongated shadows and delicate highlights to evoke a nostalgic, late-afternoon glow, while strictly preserving the monochromatic aesthetic.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target edited image, faithfully reproducing the requested global lighting enhancement to simulate a soft, warm 'golden hour' effect with increased brightness, boosted mid-tone contrast, and subtle shadows/highlights, while preserving the monochromatic aesthetic. No discrepancies like ghosting, misalignment, or missing edits are observed."
+    }
+}

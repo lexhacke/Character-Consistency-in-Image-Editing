@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the modern image into a historical photograph by applying a warm, desaturated sepia tone, introducing subtle film grain for texture, softening the overall lighting with a gentle vignette around the edges, and adjusting the contrast to evoke a faded, antique print aesthetic, ensuring the subjects' features remain clear and natural.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces all aspects of the edit, including the sepia tone, film grain, softened lighting, vignette, and adjusted contrast, resulting in an identical visual outcome to the target image. No artifacts or discrepancies are present."
+    }
+}

@@ -1,0 +1,36 @@
+{
+    "prompt": "Replace the current dark carpet background with a brightly lit, inviting classroom scene, featuring soft pastel-colored walls adorned with educational posters, wooden shelves filled with children's books and colorful toys, and a light-colored, seamless floor that extends around the children, ensuring the warm, even indoor lighting is consistent with the foreground and the overall composition feels natural and engaging.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "the children in colorful shirts and pants, including the child in the orange shirt holding white papers, and the group of children sitting on the floor",
+                "masks": [
+                    "union_0.png"
+                ]
+            },
+            {
+                "prompt": "the metal chairs on the left side of the image",
+                "masks": [
+                    "union_1.png"
+                ]
+            },
+            {
+                "prompt": "the wooden armrest in the bottom right corner",
+                "masks": [
+                    "union_2.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.996319055557251,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing the intended edit without any visible artifacts or discrepancies."
+    }
+}

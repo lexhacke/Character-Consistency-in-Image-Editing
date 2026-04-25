@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a strong Van Gogh-inspired artistic style transfer to the aerial image, transforming the scene with vibrant, swirling blues, yellows, and greens, using thick, impasto-like brushstrokes that give the buildings and airplanes a textured, dynamic appearance, while the sky and ground exhibit a characteristic swirling motion and dramatic, almost glowing, internal lighting.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999964237213135,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly reproduces the Van Gogh-inspired artistic style transfer, matching the target image in every detail including the vibrant colors, swirling brushstrokes, textured appearance of buildings and airplanes, and the characteristic motion and lighting in the sky and ground. There are no visual discrepancies such as ghosting, misalignment, or missing edits."
+    }
+}

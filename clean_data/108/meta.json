@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the modern conference scene into a historical aesthetic by applying a warm, desaturated sepia tone, adding subtle film grain and soft vignetting, and adjusting the lighting to mimic the diffused, slightly muted quality of early 20th-century photography.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

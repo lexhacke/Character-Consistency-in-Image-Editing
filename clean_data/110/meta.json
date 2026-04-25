@@ -1,0 +1,31 @@
+{
+    "prompt": "Increase the volume and flow of the main subject's patterned blue and white shirt, making it appear significantly looser and more dramatically billowed around their torso and arms, ensuring the fabric texture and existing lighting conditions are preserved for a natural appearance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "main subject's tight blue and white patterned long-sleeved collared shirt",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "main subject's billowed blue and white patterned long-sleeved collared shirt",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9862946271896362,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

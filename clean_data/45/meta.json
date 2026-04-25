@@ -1,0 +1,31 @@
+{
+    "prompt": "Change the color of the green and white minibus to a sleek matte black with vibrant neon pink accents, ensuring the 'TEQUILA KOLA' text remains clearly visible and the new finish realistically reflects the wet street and surrounding city lights.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "green and white minibus",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "matte black minibus with neon pink accents",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9815587997436523,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

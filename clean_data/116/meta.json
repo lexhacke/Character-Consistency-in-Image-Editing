@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the image into a historical photograph with a faded, early 20th-century aesthetic by desaturating colors, applying a subtle sepia tone, adding fine film grain and minor dust specks, and introducing a soft, dark vignette to enhance a vintage, aged appearance.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0000001192092896,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

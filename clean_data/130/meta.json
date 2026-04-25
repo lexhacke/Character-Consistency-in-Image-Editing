@@ -1,0 +1,17 @@
+{
+    "prompt": "Shift the overall color balance of the image to a cooler tone by introducing subtle blues and greens into the highlights and mid-tones, reducing the existing warm yellow and brown cast, while ensuring the white and yellow flowers retain their distinct, albeit cooler, hues and the green leaves appear more vibrant.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0000001192092896,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, accurately reproducing the visual content shown in the target."
+    }
+}

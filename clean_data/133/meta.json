@@ -1,0 +1,24 @@
+{
+    "prompt": "Integrate a glossy, bright red vintage American convertible, such as a 1957 Chevrolet Bel Air, parked elegantly in the middle foreground, slightly to the right of the central road markings and facing towards the illuminated 'Circus Circus' entrance, ensuring its polished surface reflects the golden and red neon lights from the casino and its headlights emit a soft glow, while casting appropriate shadows on the dark asphalt to seamlessly blend with the night-time ambiance.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "glossy bright red vintage American convertible car",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9861230850219727,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

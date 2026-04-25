@@ -29,7 +29,7 @@ app = modal.App("sam3-train")
 # ---------------------------------------------------------------------------
 # Volumes
 # ---------------------------------------------------------------------------
-dataset_volume = modal.Volume.from_name("clean-data", create_if_missing=True)
+dataset_volume = modal.Volume.from_name("picobanana-dataset", create_if_missing=True)
 checkpoint_volume = modal.Volume.from_name("picobanana-checkpoints", create_if_missing=True)
 DATASET_MOUNT = "/vol/data"
 CHECKPOINT_MOUNT = "/vol/checkpoints"
@@ -94,6 +94,9 @@ image = (
         os.path.join(LOCAL_SRC, "sam3_wrapper.py"), "/root/sam3_model/sam3_wrapper.py"
     )
     .add_local_file(
+        os.path.join(LOCAL_SRC, "sam3_alpha_wrapper.py"), "/root/sam3_model/sam3_alpha_wrapper.py"
+    )
+    .add_local_file(
         os.path.join(LOCAL_SRC, "sam3_dataset.py"), "/root/sam3_model/sam3_dataset.py"
     )
     .add_local_file(
@@ -129,6 +132,7 @@ def train(
     num_images_logged: int = None,
     overfit_batches: int = None,
     run_name: str = None,
+    data_path: str = None,
 ):
     import sys
     import json
@@ -159,11 +163,15 @@ def train(
     from sam3.train.matcher import BinaryHungarianMatcherV2, BinaryOneToManyMatcher
 
     from sam3_wrapper import SAM3ChangeDetector
+    from sam3_alpha_wrapper import SAM3AlphaGating
     from sam3_dataset import SAM3ChangeDetectionDataset
 
-    def build_change_detector(freeze_backbone=True, device="cuda"):
+    def build_model(model_type="change_detector", freeze_backbone=True, device="cuda"):
         base = build_sam3_image_model(device=device, eval_mode=False, load_from_HF=True)
-        return SAM3ChangeDetector.from_sam3_image_model(base, freeze_backbone=freeze_backbone)
+        if model_type == "alpha_gating":
+            return SAM3AlphaGating.from_sam3_image_model(base, freeze_backbone=freeze_backbone)
+        else:
+            return SAM3ChangeDetector.from_sam3_image_model(base, freeze_backbone=freeze_backbone)
 
     def build_loss(device="cuda"):
         return Sam3LossWrapper(
@@ -257,42 +265,35 @@ def train(
                 mode="bilinear",
                 align_corners=False,
             ).squeeze(1).view(B, 2, *target_hw)
+        pred_masks = (pred_masks > 0.5).float()
         return pred_masks
 
-    def log_visuals(batch, outputs, phase, epoch, step, max_items=4):
+    vis_columns = [
+        "original", "edited",
+        "sub_mask_gt", "union_mask_gt",
+        "sub_mask_pred", "union_mask_pred",
+        "prompt",
+    ]
+
+    def collect_visuals(batch, outputs, rows, media, phase, max_items=4):
+        """Append visual rows from one batch into the shared rows/media lists."""
         stage = batch.find_targets[0]
         prompts = batch.find_text_batch
         gt_masks = _get_gt_masks_per_sample(stage)
         batch_size = min(len(prompts), len(gt_masks), max_items)
         if batch_size == 0:
-            return
+            return 0
 
         target_hw = stage.segments[0].shape[-2:] if len(stage.segments) > 0 else (1008, 1008)
         pred_masks = get_top2_pred_masks(outputs, target_hw=target_hw)
-
-        columns = [
-            "original", "edited",
-            "sub_mask_gt", "union_mask_gt",
-            "sub_mask_pred", "union_mask_pred",
-            "prompt",
-        ]
-        rows = []
-        media = {
-            f"{phase}_original": [],
-            f"{phase}_edited": [],
-            f"{phase}_sub_mask_gt": [],
-            f"{phase}_union_mask_gt": [],
-            f"{phase}_sub_mask_pred": [],
-            f"{phase}_union_mask_pred": [],
-        }
+        count = 0
 
         for i in range(min(batch_size, pred_masks.shape[0])):
             prompt = prompts[i]
             original = batch.img_batch[2 * i + 1]
             edited = batch.img_batch[2 * i]
-            sample_gt = gt_masks[i]  # list of 0-2 masks
+            sample_gt = gt_masks[i]
 
-            # GT masks: first is subtraction, second is union (matches dataset ordering)
             sub_gt = sample_gt[0] if len(sample_gt) >= 1 else _blank_mask(target_hw)
             union_gt = sample_gt[1] if len(sample_gt) >= 2 else _blank_mask(target_hw)
 
@@ -320,13 +321,9 @@ def train(
                 tensor_to_wandb_image_with_caption(sub_pred, caption=prompt, is_mask=True))
             media[f"{phase}_union_mask_pred"].append(
                 tensor_to_wandb_image_with_caption(union_pred, caption=prompt, is_mask=True))
+            count += 1
 
-        log_data = {
-            f"{phase}_samples": wandb.Table(columns=columns, data=rows),
-            f"{phase}_samples_epoch": epoch,
-        }
-        log_data.update(media)
-        wandb.log(log_data, step=step)
+        return count
 
     # ---- config ----
     with open("/root/sam3_model/config.json") as f:
@@ -341,7 +338,9 @@ def train(
     save_freq      = save_freq      if save_freq      is not None else config["save_freq"]
     num_images_logged = num_images_logged if num_images_logged is not None else config.get("num_images_logged", 4)
     overfit_batches = overfit_batches if overfit_batches is not None else config["overfit_batches"]
-    data_root      = os.path.join(DATASET_MOUNT, config["data_subdir"])
+    data_path      = data_path if data_path is not None else config.get("data_path", config.get("data_subdir", ""))
+    data_root      = os.path.join(DATASET_MOUNT, data_path)
+    model_type     = config.get("model_type", "change_detector")
 
     hparams = {
         "max_epochs": max_epochs,
@@ -351,6 +350,7 @@ def train(
         "val_fraction": val_fraction,
         "num_images_logged": num_images_logged,
         "overfit_batches": overfit_batches,
+        "model_type": model_type,
     }
     print(f"Config: {hparams}")
 
@@ -399,24 +399,39 @@ def train(
 
     # ---- model ----
     device = "cuda"
-    model = build_change_detector(freeze_backbone=True, device=device)
+    freeze_backbone = config.get("freeze_backbone", True)
+    model = build_model(model_type=model_type, freeze_backbone=freeze_backbone, device=device)
     model.train()
 
     trainable = [p for p in model.parameters() if p.requires_grad]
     print(
         f"Trainable: {sum(p.numel() for p in trainable)/1e6:.1f}M / "
-        f"{sum(p.numel() for p in model.parameters())/1e6:.1f}M total"
+        f"{sum(p.numel() for p in model.parameters())/1e6:.1f}M total "
+        f"(model_type={model_type})"
     )
 
-    proj_ids = {id(p) for p in model.orig_proj.parameters()}
-    other_params = [p for p in trainable if id(p) not in proj_ids]
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": list(model.orig_proj.parameters()), "lr": lr * 10},
-            {"params": other_params,                        "lr": lr},
-        ],
-        weight_decay=1e-4,
-    )
+    if model_type == "alpha_gating":
+        # α and β are tiny (2 scalars) — give them a higher LR so they can learn quickly
+        gate_ids = {id(model.alpha), id(model.beta)}
+        gate_params = [p for p in trainable if id(p) in gate_ids]
+        other_params = [p for p in trainable if id(p) not in gate_ids]
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": gate_params,   "lr": lr * 10},
+                {"params": other_params,  "lr": lr},
+            ],
+            weight_decay=1e-4,
+        )
+    else:
+        proj_ids = {id(p) for p in model.orig_proj.parameters()}
+        other_params = [p for p in trainable if id(p) not in proj_ids]
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": list(model.orig_proj.parameters()), "lr": lr * 10},
+                {"params": other_params,                        "lr": lr},
+            ],
+            weight_decay=1e-4,
+        )
 
     total_steps = max_epochs * len(train_loader)
     warmup_steps = min(500, total_steps // 10)
@@ -454,7 +469,12 @@ def train(
     for epoch in range(max_epochs):
         model.train()
         epoch_loss = 0.0
-        logged_train_visuals = False
+        train_vis_rows = []
+        train_vis_media = {
+            "train_original": [], "train_edited": [],
+            "train_sub_mask_gt": [], "train_union_mask_gt": [],
+            "train_sub_mask_pred": [], "train_union_mask_pred": [],
+        }
 
         for batch_idx, batch in enumerate(train_loader):
             batch = copy_data_to_device(batch, device)
@@ -465,16 +485,12 @@ def train(
                 loss_dict = loss_fn(outputs, targets)
                 loss = loss_dict[CORE_LOSS_KEY]
 
-            if not logged_train_visuals:
-                log_visuals(
-                    batch,
-                    outputs,
-                    phase="train",
-                    epoch=epoch,
-                    step=global_step,
-                    max_items=4,
+            if len(train_vis_rows) < num_images_logged:
+                remaining = num_images_logged - len(train_vis_rows)
+                collect_visuals(
+                    batch, outputs, train_vis_rows, train_vis_media,
+                    phase="train", max_items=remaining,
                 )
-                logged_train_visuals = True
 
             optimizer.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
@@ -487,8 +503,17 @@ def train(
             epoch_loss += loss.item()
 
             log_data = {k: v.item() for k, v in loss_dict.items()}
+            log_data["train_loss_step"] = loss.item()
             log_data["lr"] = optimizer.param_groups[1]["lr"]
-            wandb.log(log_data, step=global_step)
+            if model_type == "alpha_gating":
+                log_data["alpha"] = model.alpha.item()
+                log_data["beta"] = model.beta.item()
+
+            # Only log per-batch metrics for non-final batches;
+            # the final batch's metrics get folded into epoch_log below.
+            is_last_batch = (batch_idx == len(train_loader) - 1)
+            if not is_last_batch:
+                wandb.log(log_data, step=global_step)
 
             if batch_idx % 50 == 0:
                 parts = {k: f"{v:.4f}" for k, v in log_data.items() if k != CORE_LOSS_KEY}
@@ -498,25 +523,39 @@ def train(
                 )
 
         avg_train = epoch_loss / len(train_loader)
+        last_batch_loss = loss.item()  # last batch of the epoch
+
+        # Build single end-of-epoch log dict (one wandb.log call to avoid clobbering)
+        # Include the last batch's per-step metrics so we never double-log at the same step
+        epoch_log = dict(log_data)  # last batch's sub-losses + lr
+        epoch_log["train_loss_epoch"] = avg_train
+        epoch_log["train_loss_last_batch"] = last_batch_loss
+
+        if train_vis_rows:
+            epoch_log[f"train_samples_epoch{epoch}"] = wandb.Table(columns=vis_columns, data=train_vis_rows)
+            epoch_log.update({f"{k}_epoch{epoch}": v for k, v in train_vis_media.items()})
 
         if not overfit_batches:
-            val_loss = _validate(
+            torch.cuda.empty_cache()
+            val_loss, val_vis = _validate(
                 model,
                 val_loader,
                 loss_fn,
                 device,
                 epoch=epoch,
-                step=global_step,
                 num_images_logged=num_images_logged,
             )
-            print(f"Epoch {epoch}: train={avg_train:.4f}  val={val_loss:.4f}")
-            wandb.log({"val_loss": val_loss, "train_loss_epoch": avg_train}, step=global_step)
+            epoch_log["val_loss"] = val_loss
+            epoch_log["val_loss_step"] = val_loss
+            epoch_log.update(val_vis)
+            print(f"Epoch {epoch}: train_avg={avg_train:.4f}  train_last={last_batch_loss:.4f}  val={val_loss:.4f}")
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 _save(model, optimizer, epoch, os.path.join(output_dir, "best.pt"))
         else:
             print(f"Epoch {epoch}: train_loss={avg_train:.4f}")
-            wandb.log({"train_loss_epoch": avg_train}, step=global_step)
+
+        wandb.log(epoch_log, step=global_step)
 
         if (epoch + 1) % save_freq == 0:
             _save(model, optimizer, epoch, os.path.join(output_dir, f"epoch_{epoch:04d}.pt"))
@@ -528,14 +567,17 @@ def train(
     print("Training complete.")
 
 
-def _validate(model, loader, loss_fn, device, epoch=None, step=None, num_images_logged=4):
+def _validate(model, loader, loss_fn, device, epoch=None, num_images_logged=4):
+    """Returns (avg_loss, vis_dict) where vis_dict has epoch-keyed tables/media."""
     import torch
     import torch.nn.functional as F
     import wandb
+    import numpy as np
     from sam3.model.utils.misc import copy_data_to_device
     from sam3.train.loss.loss_fns import CORE_LOSS_KEY
     model.eval()
     total = 0.0
+    sub_totals = {}
     val_rows = []
     columns = [
         "original", "edited",
@@ -565,13 +607,12 @@ def _validate(model, loader, loss_fn, device, epoch=None, step=None, num_images_
         for batch in loader:
             batch = copy_data_to_device(batch, device)
             outputs = model(batch)
-            if step is not None and epoch is not None and len(val_rows) < max(0, num_images_logged):
+            if epoch is not None and len(val_rows) < num_images_logged:
                 stage = batch.find_targets[0]
                 prompts = batch.find_text_batch
-                remaining = max(0, num_images_logged - len(val_rows))
+                remaining = num_images_logged - len(val_rows)
                 batch_size = min(len(prompts), len(stage.num_boxes), remaining)
 
-                # Unpack GT masks per sample
                 num_boxes = stage.num_boxes.tolist()
                 gt_per_sample = []
                 seg_offset = 0
@@ -579,7 +620,6 @@ def _validate(model, loader, loss_fn, device, epoch=None, step=None, num_images_
                     gt_per_sample.append([stage.segments[seg_offset + j] for j in range(n)])
                     seg_offset += n
 
-                # Top-2 predictions
                 target_hw = stage.segments[0].shape[-2:] if len(stage.segments) > 0 else (1008, 1008)
                 out = outputs[0]
                 logits = out["pred_logits"].squeeze(-1)
@@ -623,17 +663,21 @@ def _validate(model, loader, loss_fn, device, epoch=None, step=None, num_images_
             targets = [model.back_convert(t) for t in batch.find_targets]
             loss_dict = loss_fn(outputs, targets)
             total += loss_dict[CORE_LOSS_KEY].item()
+            for k, v in loss_dict.items():
+                sub_totals.setdefault(k, 0.0)
+                sub_totals[k] += (v.item() if hasattr(v, 'item') else v)
 
-    if val_rows and step is not None and epoch is not None:
-        log_data = {
-            "val_samples": wandb.Table(columns=columns, data=val_rows),
-            "val_samples_epoch": epoch,
-        }
-        log_data.update(media)
-        wandb.log(log_data, step=step)
+    n = max(len(loader), 1)
+    print(f"  Val sub-losses: { {k: f'{v/n:.4f}' for k, v in sub_totals.items()} }")
+
+    # Build vis dict to be merged into the caller's epoch_log
+    vis_dict = {}
+    if val_rows and epoch is not None:
+        vis_dict[f"val_samples_epoch{epoch}"] = wandb.Table(columns=columns, data=val_rows)
+        vis_dict.update({f"{k}_epoch{epoch}": v for k, v in media.items()})
 
     model.train()
-    return total / max(len(loader), 1)
+    return total / n, vis_dict
 
 
 def _save(model, optimizer, epoch, path):
@@ -661,6 +705,7 @@ def main(
     num_images_logged: int = None,
     overfit_batches: int = None,
     run_name: str = None,
+    data_path: str = None,
 ):
     import json
 
@@ -692,5 +737,6 @@ def main(
         num_images_logged=num_images_logged,
         overfit_batches=overfit_batches,
         run_name=run_name,
+        data_path=data_path,
     )
     print("Done. Checkpoints saved to Modal Volume 'picobanana-checkpoints'.")

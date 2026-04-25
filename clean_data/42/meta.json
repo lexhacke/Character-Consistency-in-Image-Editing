@@ -1,0 +1,25 @@
+{
+    "prompt": "Replace the existing plain blue sky background with a breathtaking, detailed mountainous landscape featuring snow-capped peaks and lush green valleys, ensuring the paraglider is realistically positioned high above the terrain with consistent bright, clear daylight illumination and a slight atmospheric haze in the distance.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "paraglider",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.998715341091156,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite perfectly matches the target image, faithfully reproducing the edit without any visible artifacts like ghosting, misalignment, or missing elements. The new mountainous background is seamlessly integrated, and the paraglider remains correctly positioned."
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the overcast sky into a vibrant, clear blue sky with a few faint cirrus clouds, casting bright, warm sunlight from the upper right onto the entire scene, creating distinct, sharp shadows from the church spires, buildings, and people, and enhancing the saturation and contrast of the red roofs, stone facades, and distant greenery to evoke a brilliant, sunny summer day in Prague.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998211860657,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is an exact reproduction of the target edited image, faithfully reflecting all aspects of the edit instruction without any discrepancies or artifacts."
+    }
+}

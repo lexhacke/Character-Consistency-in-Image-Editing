@@ -1,6 +1,6 @@
 {
   "max_epochs": 20,
-  "batch_size": 2,
+  "batch_size": 4,
   "lr": 1e-5,
   "min_sim": 0.94,
   "val_fraction": 0.1,
@@ -10,6 +10,7 @@
   "overfit_batches": 0,
   "freeze_backbone": true,
   "resolution": 1008,
-  "data_subdir": "clean_data",
-  "merge_masks": false
+  "data_path": "clean_mini_dataset",
+  "merge_masks": false,
+  "model_type": "change_detector"
 }

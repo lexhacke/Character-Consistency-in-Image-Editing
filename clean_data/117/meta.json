@@ -1,0 +1,77 @@
+{
+    "prompt": "Replace the existing background with a vibrant, sunlit park setting featuring lush green trees, blooming flowers, and a clear blue sky, ensuring the new context maintains a bright, inviting atmosphere while keeping the finish line banner and runners in sharp focus.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "yellow finish line banner with 'FINISH' text and digital timer '46.44'",
+                "masks": [
+                    "union_0.png"
+                ]
+            },
+            {
+                "prompt": "man in yellow singlet with 'asics 986' bib and dark shorts",
+                "masks": [
+                    "union_1.png"
+                ]
+            },
+            {
+                "prompt": "man in dark blue long-sleeve shirt and dark pants with '249' bib",
+                "masks": [
+                    "union_2.png"
+                ]
+            },
+            {
+                "prompt": "man in red short-sleeve shirt and dark shorts",
+                "masks": [
+                    "union_3.png",
+                    "union_4.png"
+                ]
+            },
+            {
+                "prompt": "man in blue short-sleeve shirt and dark shorts",
+                "masks": [
+                    "union_5.png",
+                    "union_6.png"
+                ]
+            },
+            {
+                "prompt": "partially visible person in grey t-shirt on the far right",
+                "masks": [
+                    "union_7.png"
+                ]
+            },
+            {
+                "prompt": "metal ladder structure on the far left",
+                "masks": [
+                    "union_8.png",
+                    "union_9.png"
+                ]
+            },
+            {
+                "prompt": "yellow caution tape on the ground near the finish line",
+                "masks": [
+                    "union_10.png",
+                    "union_11.png",
+                    "union_12.png"
+                ]
+            },
+            {
+                "prompt": "metal barriers on the ground to the right of the finish line",
+                "masks": [
+                    "union_13.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9918140769004822,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is an exact reproduction of the target image. Both images appear identical, which means the background replacement specified in the edit instruction was not applied in either the target or the composite."
+    }
+}

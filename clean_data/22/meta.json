@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the image to depict a bright, snowy day by adjusting the overall color temperature to be cooler, increasing the ambient brightness with soft, diffuse light that reduces harsh shadows, and subtly altering the abstract blue background to suggest a softly blurred, white and light-blue snow-covered outdoor scene, while ensuring the subject remains clearly visible with natural skin tones.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly matches the target edited image, faithfully reproducing all aspects of the edit instruction. There are no visible discrepancies such as ghosting, misalignment, or missing edits."
+    }
+}

@@ -1,0 +1,46 @@
+{
+    "prompt": "Replace the existing natural light-colored vertical wooden plank siding of the shed with dark gray, matte corrugated metal siding, ensuring the new material accurately reflects the ambient forest lighting and maintains a natural, seamless integration with the building's structure and environment.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "natural light-colored vertical wooden plank siding of the shed",
+                "masks": [
+                    "sub_0.png",
+                    "sub_1.png",
+                    "sub_2.png",
+                    "sub_3.png",
+                    "sub_4.png",
+                    "sub_5.png",
+                    "sub_6.png",
+                    "sub_7.png",
+                    "sub_8.png",
+                    "sub_9.png",
+                    "sub_10.png",
+                    "sub_11.png",
+                    "sub_12.png",
+                    "sub_13.png",
+                    "sub_14.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "dark gray matte corrugated metal siding of the shed",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9971998929977417,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing the edit without any discrepancies or artifacts."
+    }
+}

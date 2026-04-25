@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a vibrant, post-impressionistic style reminiscent of Van Gogh, transforming the entire image with swirling, visible brushstrokes and exaggerated, luminous colors, particularly in the sky, water, and distant cityscape, while rendering the boat's interior and exterior surfaces with a textured, impasto-like finish.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998807907104,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly matches the target edited image, faithfully reproducing all aspects of the vibrant, post-impressionistic style. There are no ghosting, floating artifacts, misaligned shadows, wrong objects segmented, or missing edits. The swirling brushstrokes and impasto-like finish are consistent across both images."
+    }
+}

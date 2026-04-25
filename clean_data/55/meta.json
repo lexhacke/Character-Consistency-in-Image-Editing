@@ -1,0 +1,31 @@
+{
+    "prompt": "Replace the classic white Volkswagen Golf Mk1 with a modern, sleek electric vehicle, ensuring the new car's reflections, shadows, and overall integration match the existing lighting conditions and parking lot environment for a seamless and realistic appearance.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "white two-door Volkswagen Golf Mk1 car",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "silver-grey modern four-door electric car",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9770923852920532,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

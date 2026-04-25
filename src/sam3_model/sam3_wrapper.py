@@ -1,22 +1,18 @@
 """
 SAM3ChangeDetector — fine-tunable wrapper around Sam3Image for two-image change detection.
 
-Architecture insight:
-  Sam3Image's fusion encoder cross-attends image tokens (queries) against prompt tokens
-  (keys/values). Normally the prompt tokens come from backbone.forward_text(). Here we
-  substitute the original image's backbone tokens as the prompt, exploiting the fact that
-  PE's contrastive pretraining puts image and text tokens in the same 256-dim space.
+Architecture:
+  Both images are encoded by the frozen PE backbone.  Before the fusion encoder
+  sees the edited image's features, we replace them with (edited − original) so
+  the self-attention and downstream decoder operate on *change* features rather
+  than raw content.  This eliminates the shortcut where the model ignores the
+  original image and falls back to saliency detection.
 
 Batching convention (must match SAM3ChangeDetectionDataset):
   Each Datapoint has two images: images[0] = edited, images[1] = original.
   After collation, img_batch is [edited_0, orig_0, edited_1, orig_1, ...].
-  Input shape is gonna be [2*B, 3, H, W], and find_input.img_ids = [0, 2, 4, ...] (edited indices).
   find_input.img_ids = [0, 2, 4, ...] (edited indices).
   find_input.img_ids + 1 = [1, 3, 5, ...] (original indices).
-
-Phase 0 inference helper:
-  Use inject_original_as_prompt() + Sam3Processor._forward_grounding() to validate
-  the dimension swap works before any training.
 """
 
 from typing import Dict, Optional, Tuple
@@ -67,6 +63,10 @@ class SAM3ChangeDetector(Sam3Image):
         if freeze_backbone:
             for p in base_model.backbone.parameters():
                 p.requires_grad_(False)
+            base_model.backbone.eval()
+            base_model._freeze_backbone = True
+        else:
+            base_model._freeze_backbone = False
 
         # Small projection to adapt image tokens → prompt-token space.
         # Initialised as identity so training starts from the pretrained representation.
@@ -83,12 +83,24 @@ class SAM3ChangeDetector(Sam3Image):
         if freeze_backbone:
             for p in self.backbone.parameters():
                 p.requires_grad_(False)
+            self._freeze_backbone = True
+        else:
+            self._freeze_backbone = False
         self.orig_proj = nn.Linear(self.hidden_dim, self.hidden_dim)
         nn.init.eye_(self.orig_proj.weight)
         nn.init.zeros_(self.orig_proj.bias)
 
+    def train(self, mode: bool = True):
+        super().train(mode)
+        # Frozen backbone must stay in eval mode — dropout in a frozen module
+        # just adds noise to the features without any learning benefit.
+        if getattr(self, "_freeze_backbone", False):
+            self.backbone.eval()
+        return self
+
     # ------------------------------------------------------------------
-    # Core override: swap language features for original-image tokens
+    # Core override: replace edited features with (edited − original)
+    # difference so the fusion encoder sees change signal directly.
     # ------------------------------------------------------------------
 
     def _encode_prompt(
@@ -98,39 +110,29 @@ class SAM3ChangeDetector(Sam3Image):
         geometric_prompt: Prompt,
         visual_prompt_embed=None,
         visual_prompt_mask=None,
-        encode_text: bool = True,    # ignored — we always use image tokens
+        encode_text: bool = True,    # ignored
         prev_mask_pred=None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """
-        Replace language_features with per-sample original-image tokens.
+        Swap the edited image's backbone features for (edited − original)
+        before the fusion encoder sees them.  No cross-attention prompt
+        from the original image — the difference IS the signal.
 
-        find_input.img_ids contains indices of the *edited* images in backbone_fpn.
-        The original image for query i is always at img_ids[i] + 1 (see batching
-        convention in module docstring).
+        find_input.img_ids  = indices of edited images in backbone_fpn
+        find_input.img_ids + 1 = indices of original images
         """
+        # --- replace edited features with edit−orig difference ---
+        orig_img_ids = find_input.img_ids + 1                            # [B]
+        edit_feats = backbone_out["backbone_fpn"][-1][find_input.img_ids] # [B,256,H,W]
+        orig_feats = backbone_out["backbone_fpn"][-1][orig_img_ids]       # [B,256,H,W]
+        diff_feats = edit_feats - orig_feats                              # [B,256,H,W]
+        backbone_out["backbone_fpn"][-1][find_input.img_ids] = diff_feats
+
         feat_tuple = self._get_img_feats(backbone_out, find_input.img_ids)
         backbone_out, img_feats, img_pos_embeds, vis_feat_sizes = feat_tuple
 
         if prev_mask_pred is not None:
             img_feats = [img_feats[-1] + prev_mask_pred]
-
-        # --- original image tokens as prompt ---
-        orig_img_ids = find_input.img_ids + 1          # [B]
-        # backbone_fpn[-1]: [total_imgs, 256, H, W]
-        orig_feats = backbone_out["backbone_fpn"][-1][orig_img_ids]   # [B, 256, H, W]
-        orig_tokens = orig_feats.flatten(2).permute(2, 0, 1)          # [H*W, B, 256]
-        orig_tokens = self.orig_proj(orig_tokens)                      # [H*W, B, 256]
-        # Add 2D positional encoding so the fusion encoder knows spatial layout.
-        # The encoder doesn't pass pos enc for prompt/memory tokens (designed for
-        # text which has no spatial structure), so we bake it in here.
-        orig_pos = backbone_out["vision_pos_enc"][-1]                  # [total_imgs, 256, H, W]
-        orig_pos = orig_pos[orig_img_ids].flatten(2).permute(2, 0, 1)  # [H*W, B, 256]
-        orig_tokens = orig_tokens + orig_pos
-        # mask: all False (no padding in a dense spatial grid)
-        orig_mask = torch.zeros(
-            orig_tokens.shape[1], orig_tokens.shape[0],
-            dtype=torch.bool, device=orig_tokens.device,
-        )                                                              # [B, H*W]
 
         # --- geometric tokens (boxes/points from find_input) ---
         geo_feats, geo_masks = self.geometry_encoder(
@@ -151,8 +153,9 @@ class SAM3ChangeDetector(Sam3Image):
                 dtype=geo_masks.dtype,
             )
 
-        prompt = torch.cat([orig_tokens, geo_feats, visual_prompt_embed], dim=0)
-        prompt_mask = torch.cat([orig_mask, geo_masks, visual_prompt_mask], dim=1)
+        # No original-image prompt — just geometry + visual passthrough
+        prompt = torch.cat([geo_feats, visual_prompt_embed], dim=0)
+        prompt_mask = torch.cat([geo_masks, visual_prompt_mask], dim=1)
         return prompt, prompt_mask, backbone_out
 
     # ------------------------------------------------------------------

@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the image to evoke a historical botanical illustration style by applying a soft, desaturated sepia filter, enhancing contrast subtly to define the plant's intricate details, and adding a delicate vignette with a fine paper-like texture overlay to simulate an aged print.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998211860657,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image faithfully reproduces all aspects of the edit, including the soft, desaturated sepia filter, enhanced contrast, delicate vignette, and fine paper-like texture overlay. There are no discernible differences between the composite and the target image."
+    }
+}

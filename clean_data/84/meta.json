@@ -1,0 +1,17 @@
+{
+    "prompt": "Outpaint the image by extending the clear blue sky upwards and outwards, seamlessly continuing the red perforated structures to the left and right with their circular patterns, and expanding the scene downwards to reveal more of the fairground, including the full Ferris wheel, additional colorful rides, fair tents, and a lively crowd under bright daylight, maintaining the existing color palette and lighting.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

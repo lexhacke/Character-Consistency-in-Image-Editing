@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a strong, post-impressionistic artistic style transfer reminiscent of Van Gogh, characterized by dynamic, swirling brushstrokes in the sky and grass, vibrant and exaggerated colors with intensified reds and golds, and a thick, impasto texture across all elements, while maintaining the original composition and subject matter.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999995231628418,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target edited image, faithfully reproducing the strong, post-impressionistic style transfer with dynamic brushstrokes, vibrant colors, and impasto texture across all elements, while maintaining the original composition and subject matter. No issues like ghosting, misalignment, or missing edits were observed."
+    }
+}

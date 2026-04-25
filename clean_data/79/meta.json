@@ -1,0 +1,17 @@
+{
+    "prompt": "Adjust the overall color tone to a significantly warmer palette, enhancing the golden and creamy hues of the cheesecake and whipped cream, making the chocolate appear richer and more inviting, and subtly softening the dark background with warmer, less stark shadows, to create a cozy and appetizing atmosphere.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999994039535522,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

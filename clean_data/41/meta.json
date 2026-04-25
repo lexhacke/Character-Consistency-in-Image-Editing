@@ -1,0 +1,17 @@
+{
+    "prompt": "Outpaint the image by extending the canvas in all directions, adding more pristine, bright white snow on the slopes with subtle ski tracks and natural undulations, increasing the density of snow-laden evergreen trees with their distinctive frosty shapes, and expanding the clear, vibrant blue sky, all while maintaining the consistent bright, sunny daylight and natural depth of field of a winter mountain landscape and seamlessly integrating with the existing ski lift components if they extend beyond the current frame.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

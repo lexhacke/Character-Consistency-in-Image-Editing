@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a subtle, fine film grain across the entire image to add textural depth, combined with a warm, slightly desaturated vintage color grade that introduces a soft, faded aesthetic and a gentle vignette, enhancing the antique feel of the ornate cross while preserving its intricate details.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly matches the target image, faithfully reproducing all aspects of the requested edit including the subtle film grain, warm desaturated vintage color grade, soft faded aesthetic, and gentle vignette. All intricate details of the cross are preserved without any artifacts, ghosting, or misalignment."
+    }
+}

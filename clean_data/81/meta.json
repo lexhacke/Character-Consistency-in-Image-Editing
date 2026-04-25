@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a vintage film aesthetic to the image by slightly desaturating the vibrant purple flowers and blue sky, introducing a subtle warm tint, gently lifting the blacks for softer contrast, and incorporating a fine, natural film grain across the entire composition.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998807907104,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite perfectly matches the target image; all edits (desaturation, warm tint, lifted blacks, and film grain) are accurately reproduced across the entire composition without any artifacts, ghosting, or misalignment."
+    }
+}

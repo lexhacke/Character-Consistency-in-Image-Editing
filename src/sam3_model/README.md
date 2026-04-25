@@ -1,6 +1,6 @@
 # SAM3 Change Detection
 
-This document describes the SAM3 architecture in detail (with tensor shapes), explains the `SAM3ChangeDetector` modification, and outlines the training plan.
+This document describes the SAM3 architecture in detail (with tensor shapes), explains the `SAM3ChangeDetector` modification, its failure modes, and where the project goes from here.
 
 ---
 
@@ -16,7 +16,10 @@ This document describes the SAM3 architecture in detail (with tensor shapes), ex
    - [Stage 6: Segmentation Head](#stage-6--segmentation-head)
    - [Complete Tensor Flow](#complete-tensor-flow)
 2. [Our Modification: SAM3ChangeDetector](#2-our-modification-sam3changedetector)
-3. [Next Steps](#3-next-steps)
+3. [Why It Failed](#3-why-it-failed)
+4. [What We Tried](#4-what-we-tried)
+5. [Path Forward](#5-path-forward)
+6. [Dataset & Training Reference](#6-dataset--training-reference)
 
 ---
 
@@ -273,45 +276,111 @@ orig_tokens:       [5184, B, 256]
 
 `SAM3ChangeDetector` subclasses `Sam3Image` and overrides `_encode_prompt()`. It is "upgraded" onto an existing `Sam3Image` instance via `from_sam3_image_model()` to avoid duplicating the complex `__init__` parameter list.
 
-### Phase 0 Verification
+---
 
-Shape checks confirmed:
+## 3. Why It Failed
+
+### The shortcut: saliency detection instead of change detection
+
+After ~14 training runs across multiple hyperparameter settings, learning rate schedules, and architectural variants, all runs converge to the same failure mode: **the model segments the most salient object in the edited image, completely ignoring the original image.**
+
+Visual inspection of predicted masks across all runs shows the model producing clean segmentations of prominent objects (crocodiles, people, buildings, picnic tables) rather than masks of *what changed* between the image pair. The loss converges — sometimes to seemingly reasonable values — but the model is solving the wrong problem.
+
+### Why SAM3 can't learn to compare
+
+The fundamental issue is **modality laziness** (a well-documented failure mode in multimodal learning). When one input modality is sufficient to achieve low loss, the model learns to ignore the other.
+
+In standard SAM3, the text prompt is **load-bearing**: without it, the model has no idea *what* to segment. It must attend to the prompt or it produces garbage. The gradient pressure to use the prompt is absolute.
+
+In our modification, the edited image alone contains everything the model needs to produce a "reasonable" mask. The 95M trainable parameters inherited strong pretrained weights for saliency-based segmentation. The model can achieve moderate loss by:
+
+1. Ignoring the original image prompt entirely (cross-attention weights → 0)
+2. Falling back on its pretrained ability to segment salient objects
+3. Getting partial overlap with GT masks (salient objects often overlap with changed regions)
+
+The Hungarian matcher finds *some* assignment between predicted and GT masks, the dice/focal losses produce moderate (not catastrophic) gradients, and the model settles into this local minimum. The loss going from ~280 → ~85 over 4 epochs is the model recovering its pretrained saliency capabilities, not learning change detection.
+
+### The residual connection makes ignoring the prompt free
+
+The fusion encoder architecture makes this shortcut structurally trivial:
 
 ```
-backbone_fpn[-1]:              [1, 256, 72, 72]    OK
-language_features (swapped):   [5184, 1, 256]      OK
-pred_masks:                    [1, 200, 288, 288]   OK
-backbone frozen:               705/705 params       OK
-orig_proj:                     identity init        OK
+h = h + cross_attn(Q=h, K=prompt, V=prompt)
 ```
+
+If cross-attention weights go to zero, this reduces to `h = h + 0 = h`. The residual connection means **ignoring the prompt has zero cost** — the edited image features pass through unchanged. There is no mechanism that forces the model to read the prompt.
+
+This is fundamentally different from the text prompt case, where the model *must* attend to text to distinguish "segment the dog" from "segment the table."
+
+### Why a 400K-param U-Net succeeded where 95M params failed
+
+A small U-Net trained from scratch on 20-50 image pairs converged correctly on this task. This seems paradoxical — more capacity and more pretraining should help, not hurt.
+
+The explanation: the U-Net had **no pretrained shortcut available.** It processed both images as concatenated channel input from pixel level. The only way to minimize loss was to actually learn to compare the two images. The architecture couldn't "ignore" one image because they were fused at the very first layer.
+
+SAM3's pretrained weights create an enormous basin of attraction toward saliency detection. Fine-tuning 95M parameters can't escape this basin because the shortcut loss is good enough that gradients don't push the model toward the harder (but correct) comparison solution.
 
 ---
 
-## 3. Next Steps
+## 4. What We Tried
 
-### Phase 1 — Fine-tune detector only (current plan)
+### Experiment 1: Cross-attention prompt injection (original approach)
 
-Freeze the PE backbone entirely (~750M params). Train only:
+Inject original image backbone features (`[5184, B, 256]`) into the prompt slot where text tokens normally go.
 
-| Module | Approx. params |
-|---|---|
-| `TransformerEncoderFusion` (6-layer fusion encoder) | ~20M |
-| `TransformerDecoder` (6-layer DETR decoder + bbox/presence heads) | ~60M |
-| `UniversalSegmentationHead` (pixel decoder + mask predictor) | ~15M |
-| `orig_proj` (256x256 linear) | ~65K |
-| **Total trainable** | **~95M** |
+**Result**: Model produces saliency masks of the edited image. Loss converges (~280 → ~45 over 20 epochs). Predicted masks show clean segmentations of salient objects (crocodiles, people, buildings) unrelated to actual changes.
 
-**Rationale**: The PE backbone already produces good 256-dim spatial features. The detector was trained to cross-attend to text tokens — it needs to learn to do the same with image tokens. The mask decoder uses those detector outputs directly, so it also needs updating.
+**Runs**: 9 runs from 2026-04-06 to 2026-04-10 (see W&B project). Best val_loss ~3.2 (bs=2, lr=1e-5, normalized for two-mask objective). All show the same saliency-detection behavior.
 
-### Things to try if the model fails
+### Experiment 2: Cross-attention ablation (prompt zeroed)
 
-**1. Concatenate the edit prompt text into the prompt encoding.**
-SAM3 natively supports concatenating exemplar + text prompts through the fusion encoder. We could concatenate the PE text encoding of the original edit instruction (e.g., "Replace the film roll with a light meter") onto the prompt encoding alongside the original image tokens. The meta.json `prompt` field is already passed as `query_text` in the Datapoint.
+Set `orig_proj(orig_tokens) * 0` — zero out the projected original image tokens before adding positional encoding.
 
-**2. LoRA adapters on the backbone.**
-If the model fails to learn meaningful change masks with the backbone fully frozen, the likely issue is that the original image's features are not well-adapted to the prompt role — they were trained as spatial descriptors, not concept descriptors. Solution: add LoRA adapters (~2-5M params each) to the PE backbone's attention layers for the original-image path, leaving the edited-image path unchanged.
+**Result**: Identical masks. Same loss convergence. The model produces the exact same saliency-based segmentations with or without original image content in the prompt.
 
-Do not attempt these until Phase 1 training shows clear evidence of failure (e.g. loss plateaus above random baseline, or attention maps show no meaningful localization of changed regions).
+**Conclusion**: The cross-attention mechanism provides zero meaningful signal. The model ignores the prompt entirely, confirming the modality laziness hypothesis.
+
+### Experiment 3: Latent feature difference
+
+Replace the edited image's backbone features with `PE(edited) - PE(original)` before the fusion encoder. Remove the cross-attention prompt entirely.
+
+**Result**: Complete collapse. ~50% higher loss than baseline. Model outputs blank/empty masks. Presence head learns "nothing here."
+
+**Explanation**: The dataset filters for image pairs with DINO similarity > 0.94. In the PE feature space, near-identical images produce near-identical features. The difference `PE(edited) - PE(original) ≈ 0` everywhere. The pretrained decoder receives near-zero input and correctly concludes nothing is present.
+
+### Experiment 4: Alpha-gating variant (`sam3_alpha_wrapper.py`)
+
+Learned per-channel gating between edited and original features at each FPN level.
+
+**Result**: Same saliency detection behavior. Loss converges but masks show no change-detection signal.
+
+---
+
+## 5. Path Forward
+
+### Why E2E SAM3 change detection is structurally blocked
+
+The frozen PE backbone cannot learn to compare two images — it processes each independently and produces features optimized for single-image understanding. The trainable decoder has a cheaper solution available (saliency detection via pretrained weights) and no gradient pressure strong enough to overcome it. Unfreezing the full 850M-param backbone risks destroying SAM3's segmentation ability and requires far more data than we have.
+
+**The E2E SAM3 approach is abandoned.**
+
+### Recommended architecture: Change detector + SAM3 prompt pipeline
+
+Separate the two sub-tasks:
+
+1. **Change detection** (what changed, roughly where): A lightweight model that takes two images and produces bounding boxes or point prompts for changed regions. The U-Net proof-of-concept showed this is learnable from scratch with very little data.
+
+2. **Precise segmentation** (pixel-perfect masks from prompts): Stock SAM3, used exactly as designed — given a box or point prompt, produce a high-quality segmentation mask. No fine-tuning needed.
+
+This plays to SAM3's actual strength (precise prompted segmentation) without asking it to perform comparison, which it cannot do with a frozen backbone.
+
+### Alternative: VLM routing (current working pipeline)
+
+The existing Gemini-based pipeline already works: VLM analyzes the edit prompt and image pair, determines what to segment and from which image, then SAM3 segments based on text/geometric prompts. This is accurate but adds VLM latency and API cost. The change-detector approach above would replace the VLM with a fast, local model.
+
+---
+
+## 6. Dataset & Training Reference
 
 ### Dataset Requirements
 

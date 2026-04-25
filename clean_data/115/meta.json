@@ -1,0 +1,17 @@
+{
+    "prompt": "Adjust the global lighting to simulate a cool, even, and slightly greenish-blue fluorescent illumination, increasing overall brightness while reducing shadow depth and contrast to create a stark, uniformly lit indoor environment.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0000001192092896,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

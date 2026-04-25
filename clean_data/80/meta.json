@@ -1,0 +1,32 @@
+{
+    "prompt": "Change the white metal body and ornate details of the foreground lamppost to a dark, aged bronze finish, ensuring the new material realistically reflects the ambient light and maintains a cohesive aesthetic with the surrounding architecture, while preserving the existing yellow glass panels and the overall scene's lighting.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "white metal lamppost with ornate details",
+                "masks": [
+                    "sub_0.png",
+                    "sub_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "dark aged bronze lamppost with ornate details and yellow glass panels",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9867340326309204,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "prompt": "Add a small, vibrant green lime wedge with a slightly glossy cut surface, gently placed on the white plate near the fried food, ensuring its lighting and shadows realistically match the warm restaurant ambiance.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "small vibrant green lime wedge with a slightly glossy cut surface",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9925426840782166,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces the edit. The lime wedge is present, correctly sized, colored, and placed. Its lighting and shadows are consistent with the target image and the scene's ambiance. There are no ghosting, floating artifacts, misalignment, or missing edits."
+    }
+}

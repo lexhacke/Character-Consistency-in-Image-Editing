@@ -1,0 +1,17 @@
+{
+    "prompt": "Zoom in tightly on the drag queen's upper body, from mid-chest to the top of her head, maintaining the dynamic stage lighting that illuminates her vibrant pink wig and elaborate facial makeup, ensuring the details of her red and pink fringed costume and the microphone in her hand remain sharp and clear against the dark background.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999992251396179,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, thus faithfully reproducing the edit."
+    }
+}

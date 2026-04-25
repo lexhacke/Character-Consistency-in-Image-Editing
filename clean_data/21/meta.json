@@ -1,0 +1,34 @@
+{
+    "prompt": "Replace the two visible ornate, yellow-spoked wheels with white-wall tires and blue hubs with modern, dark grey alloy car wheels featuring standard black rubber tires, ensuring the new wheels are perfectly scaled and positioned to fit the carriage's axles, realistically lit to match the sunny environment, and maintain the original perspective and ground contact.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "two ornate yellow spoked wheels with white-wall tires and blue hubs",
+                "masks": [
+                    "sub_0.png",
+                    "sub_1.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "two modern dark grey alloy car wheels with standard black rubber tires",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png",
+                    "union_2.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9936274290084839,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

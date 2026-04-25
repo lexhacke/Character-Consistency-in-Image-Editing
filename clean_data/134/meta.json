@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a vintage film effect by subtly desaturating colors, introducing a slight warm yellow cast, gently softening contrast, and adding a fine, natural film grain across the entire image to evoke a nostalgic, aged photograph.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly reproduces the vintage film effect, including the subtle desaturation, warm yellow cast, softened contrast, and fine film grain across the entire image. There are no observable differences or artifacts."
+    }
+}

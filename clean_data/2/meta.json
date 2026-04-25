@@ -1,0 +1,17 @@
+{
+    "prompt": "Transform the image into a historical photograph from the early 20th century by applying a desaturated, sepia-toned filter with muted greens and browns, adding subtle film grain, slightly softening focus on distant background elements to obscure modern buildings, and enhancing the overall diffused lighting to evoke a timeless, melancholic atmosphere.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998807907104,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly reproduces all aspects of the target image and the edit instruction. There are no ghosting artifacts, misaligned elements, or missing edits. The sepia tone, film grain, softened background, and diffused lighting are all faithfully replicated."
+    }
+}

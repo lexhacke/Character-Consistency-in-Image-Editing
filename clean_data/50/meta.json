@@ -1,0 +1,24 @@
+{
+    "prompt": "Integrate a new, smaller stencil graffiti of a clenched fist holding a rose to the lower left of the main figure, rendered in a vibrant green spray paint with realistic drips and shadows that seamlessly blend with the wall's texture and the existing street art lighting conditions.",
+    "base": "original",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "stencil graffiti of a clenched fist holding a green rose",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9222536683082581,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces the new stencil graffiti of a clenched fist holding a rose. The size, position, vibrant green color, realistic drips, and blending with the wall's texture are consistent with the target image. There are no observable ghosting, floating artifacts, or missing edits."
+    }
+}

@@ -1,0 +1,45 @@
+{
+    "prompt": "Replace the existing studio background behind the two individuals and the monitors with a dynamic, high-resolution digital display showcasing a vibrant global cityscape at night, featuring glowing architectural details and subtle, animated data visualizations, ensuring the new background's cool-toned lighting seamlessly integrates with the foreground's warm accents and maintains a professional news studio aesthetic.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "man wearing a white collared shirt and blue jeans",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png",
+                    "union_2.png"
+                ]
+            },
+            {
+                "prompt": "woman with black hair wearing a green shirt and blue jeans",
+                "masks": [
+                    "union_3.png"
+                ]
+            },
+            {
+                "prompt": "black news desk with a reflective surface and orange glowing base",
+                "masks": [
+                    "union_4.png"
+                ]
+            },
+            {
+                "prompt": "black monitor displaying a man's face on a stand",
+                "masks": [
+                    "union_5.png",
+                    "union_6.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9938361048698425,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

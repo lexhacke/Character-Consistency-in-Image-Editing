@@ -1,0 +1,17 @@
+{
+    "prompt": "Re-light the entire image to simulate a warm, soft 'golden hour' glow, casting gentle, directional light from the left, enhancing the subjects' skin tones with a natural, warm luminosity, subtly deepening shadows, and imparting a soft, golden cast to the overall scene and background without over-saturating colors.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999998807907104,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, faithfully reproducing the intended relighting effect with a warm, soft 'golden hour' glow, directional light from the left, enhanced skin tones, subtly deepened shadows, and an overall soft, golden cast without oversaturation. No ghosting, floating artifacts, misaligned shadows, or missing edits are observed."
+    }
+}

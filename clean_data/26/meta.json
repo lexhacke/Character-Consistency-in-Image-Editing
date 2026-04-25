@@ -1,0 +1,33 @@
+{
+    "prompt": "Replace the existing background with a vibrant, modern cafe interior, featuring soft, warm overhead lighting, blurred contemporary furniture, and subtle architectural elements like exposed brick or large windows with diffused daylight, ensuring the new context seamlessly blends with the foreground subjects' lighting and perspective.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "the group of people sitting at the tables",
+                "masks": [
+                    "union_0.png"
+                ]
+            },
+            {
+                "prompt": "the two wooden tables with laptops, food, and drinks",
+                "masks": [
+                    "union_1.png",
+                    "union_2.png",
+                    "union_3.png",
+                    "union_4.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9645807147026062,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly matches the target image, faithfully reproducing the background replacement as described in the edit instruction. There are no visual discrepancies such as ghosting, misalignment, or missing elements."
+    }
+}

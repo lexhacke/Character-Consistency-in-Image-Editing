@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a vintage film filter by slightly desaturating colors, adding a subtle warm sepia tint, reducing overall contrast, introducing a fine, natural film grain, and finishing with a soft, dark vignette to evoke an aged photographic aesthetic.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image perfectly matches the target image, accurately reproducing all aspects of the vintage film filter, including desaturation, warm sepia tint, reduced contrast, fine film grain, and soft dark vignette."
+    }
+}

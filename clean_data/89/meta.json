@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a subtle, fine-grained film texture to the image, shifting the overall color palette towards a muted, slightly desaturated vintage aesthetic with a hint of warm sepia in the highlights and slightly crushed shadows, mimicking an old analog photograph.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}

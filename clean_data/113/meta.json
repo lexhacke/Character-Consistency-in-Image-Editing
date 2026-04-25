@@ -1,0 +1,17 @@
+{
+    "prompt": "Apply a strong Van Gogh-inspired artistic style transfer to the image, rendering the race car and track with swirling, thick impasto brushstrokes in vibrant blues, yellows, and reds, creating a dynamic, expressive texture and luminous lighting while maintaining the original composition and sense of motion.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 1.0,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target edited image, faithfully reproducing the Van Gogh-inspired artistic style transfer with swirling, thick impasto brushstrokes across the entire scene without any noticeable discrepancies, ghosting, or missing edits."
+    }
+}

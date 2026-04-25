@@ -1,0 +1,17 @@
+{
+    "prompt": "Change the primary illuminated color of all the large port cranes from their current warm yellow and orange hues to a vibrant electric blue, ensuring the new blue light realistically reflects on the water and integrates seamlessly with the existing night-time atmosphere, while preserving any distinct red, purple, or pink accent lights already present on the cranes.",
+    "base": "edited",
+    "subtraction": {
+        "success": [],
+        "failed": []
+    },
+    "union": {
+        "success": [],
+        "failed": []
+    },
+    "similarity_score": 0.9999999403953552,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite faithfully reproduces the edit. All large port cranes have been changed to a vibrant electric blue, the blue light reflects realistically on the water, and any existing red, purple, or pink accent lights have been preserved. There are no noticeable visual artifacts, ghosting, misalignment, or missing edits compared to the target image."
+    }
+}

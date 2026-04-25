@@ -43,6 +43,7 @@ from sam3.train.loss.sam3_loss import Sam3LossWrapper
 from sam3.train.matcher import BinaryHungarianMatcherV2, BinaryOneToManyMatcher
 
 from src.sam3_model.sam3_wrapper import SAM3ChangeDetector
+from src.sam3_model.sam3_alpha_wrapper import SAM3AlphaGating
 from src.sam3_model.sam3_dataset import SAM3ChangeDetectionDataset
 
 

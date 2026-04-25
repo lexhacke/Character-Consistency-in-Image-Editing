@@ -1,0 +1,132 @@
+{
+    "prompt": "Replace all hanging anime body pillows and related merchandise with a vibrant array of freshly picked, brightly colored seasonal fruits and vegetables, such as ripe red tomatoes, leafy green lettuce, and golden yellow corn, arranged artfully in rustic wooden crates and woven baskets, showcasing their fresh, crisp textures under the existing natural outdoor market lighting, and update any visible price tags to reflect new, appropriate values.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "large plastic-wrapped anime body pillow featuring a green-haired character in a white and green maid dress",
+                "masks": [
+                    "sub_0.png"
+                ]
+            },
+            {
+                "prompt": "black fabric hanging merchandise with an orange-haired anime character",
+                "masks": [
+                    "sub_1.png"
+                ]
+            },
+            {
+                "prompt": "small white plush toy with large black eyes and a blue bow",
+                "masks": [
+                    "sub_2.png",
+                    "sub_3.png"
+                ]
+            },
+            {
+                "prompt": "white long-eared plush bunny toy",
+                "masks": [
+                    "sub_4.png",
+                    "sub_5.png",
+                    "sub_6.png",
+                    "sub_7.png"
+                ]
+            },
+            {
+                "prompt": "small rectangular merchandise items in clear plastic packaging on a lower shelf",
+                "masks": [
+                    "sub_8.png",
+                    "sub_9.png",
+                    "sub_10.png",
+                    "sub_11.png",
+                    "sub_12.png"
+                ]
+            },
+            {
+                "prompt": "small white rectangular price tag displaying '3500' on the large anime body pillow",
+                "masks": [
+                    "sub_13.png",
+                    "sub_14.png"
+                ]
+            },
+            {
+                "prompt": "small white rectangular price tag displaying '3500' on the black fabric merchandise",
+                "masks": [
+                    "sub_15.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "bags of hanging produce including dark red grapes, light green grapes, and yellow corn cobs",
+                "masks": [
+                    "union_0.png",
+                    "union_1.png",
+                    "union_2.png"
+                ]
+            },
+            {
+                "prompt": "wooden crates filled with bright red round tomatoes",
+                "masks": [
+                    "union_3.png"
+                ]
+            },
+            {
+                "prompt": "wooden crates filled with leafy green cabbages and heads of lettuce",
+                "masks": [
+                    "union_4.png",
+                    "union_5.png"
+                ]
+            },
+            {
+                "prompt": "woven baskets filled with bright yellow oval lemons",
+                "masks": [
+                    "union_6.png",
+                    "union_7.png",
+                    "union_8.png",
+                    "union_9.png"
+                ]
+            },
+            {
+                "prompt": "woven baskets filled with vibrant green round apples",
+                "masks": [
+                    "union_10.png"
+                ]
+            },
+            {
+                "prompt": "wooden crate filled with glossy red and green bell peppers",
+                "masks": [
+                    "union_11.png",
+                    "union_12.png"
+                ]
+            },
+            {
+                "prompt": "baskets and crates containing various green vegetables such as long green onions and bok choy",
+                "masks": [
+                    "union_13.png",
+                    "union_14.png",
+                    "union_15.png",
+                    "union_16.png",
+                    "union_17.png",
+                    "union_18.png",
+                    "union_19.png",
+                    "union_20.png"
+                ]
+            },
+            {
+                "prompt": "white rectangular price tags with black text displaying values like '\u00a5350', '\u00a5250', '\u00a5260' on the produce displays",
+                "masks": [
+                    "union_21.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9864990711212158,
+    "gemini_validation": {
+        "pass": true,
+        "reason": "The composite image is identical to the target image, accurately reproducing the intended edit without any visible discrepancies such as ghosting, misalignment, or missing elements."
+    }
+}

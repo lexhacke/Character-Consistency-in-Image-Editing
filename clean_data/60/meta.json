@@ -1,0 +1,31 @@
+{
+    "prompt": "Relocate the large, dark brown termite mound from its current position on the central tree to a more distant tree on the left side of the frame, adjusting its size and perspective to appear naturally smaller and further away, while seamlessly blending its textured surface and earthy tones with the surrounding green foliage and maintaining the original dappled lighting conditions.",
+    "base": "original",
+    "subtraction": {
+        "success": [
+            {
+                "prompt": "large dark brown termite mound on the central tree",
+                "masks": [
+                    "sub_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "union": {
+        "success": [
+            {
+                "prompt": "smaller dark brown termite mound on the distant tree on the left",
+                "masks": [
+                    "union_0.png"
+                ]
+            }
+        ],
+        "failed": []
+    },
+    "similarity_score": 0.9544358253479004,
+    "gemini_validation": {
+        "pass": true,
+        "reason": ""
+    }
+}
